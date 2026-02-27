@@ -10,6 +10,7 @@ export default (ctx: Context) => {
     name: '规则集',
     path: '/filter-pro',
     icon: 'activity:filter-pro',
+    authority: 4,
     order: 320,
     component: Page as any
   })

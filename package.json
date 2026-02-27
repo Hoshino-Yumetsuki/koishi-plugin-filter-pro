@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-filter-pro",
   "description": "A powerful filter plugin for Koishi",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "main": "lib/index.cjs",
   "module": "lib/index.mjs",
   "types": "lib/index.d.ts",
@@ -27,7 +27,7 @@
   },
   "contributors": [
     "q78kg <hoshino-yumetsuki@outlook.com>",
-    "shangxueink <1919892171@qq.com>"
+    "shangxue <1919892171@qq.com>"
   ],
   "repository": {
     "type": "git",
