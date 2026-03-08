@@ -30,10 +30,9 @@ export function apply(ctx: Context, config: Config = {}) {
   const state: RuleState = { rules: [] }
   const persist = createPersister(dataFile)
   const logger = ctx.logger('filter-pro')
-  const debug = !!config.debug
 
   const trace = (stage: string, payload: Record<string, unknown>) => {
-    if (!debug) return
+    if (!config.debug) return
     if (stage !== 'native-filter:evaluate') return
     if (!payload?.matched) return
     logger.info('[trace:%s] %s', stage, JSON.stringify(payload))
