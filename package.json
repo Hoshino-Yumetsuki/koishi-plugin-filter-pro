@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-filter-pro",
   "description": "A powerful filter plugin for Koishi",
-  "version": "1.0.19",
+  "version": "1.1.0",
   "main": "lib/index.cjs",
   "module": "lib/index.mjs",
   "types": "lib/index.d.ts",
