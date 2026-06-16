@@ -14,64 +14,72 @@
       @focus="focused = true"
       @blur="onBlur"
     />
-    <button v-if="modelValue.length > 0" class="tag-clear-btn" @click.stop="clearAll" tabindex="-1" title="清空">×</button>
+    <button
+      v-if="modelValue.length > 0"
+      class="tag-clear-btn"
+      @click.stop="clearAll"
+      tabindex="-1"
+      title="清空"
+    >
+      ×
+    </button>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref } from 'vue';
 
-defineOptions({ name: 'TagInput' })
+defineOptions({ name: 'TagInput' });
 
 const props = defineProps<{
-  modelValue: string[]
-  placeholder?: string
-}>()
+  modelValue: string[];
+  placeholder?: string;
+}>();
 
-const emit = defineEmits<(e: 'update:modelValue', value: string[]) => void>()
+const emit = defineEmits<(e: 'update:modelValue', value: string[]) => void>();
 
-const inputEl = ref<HTMLInputElement | null>(null)
-const inputText = ref('')
-const focused = ref(false)
+const inputEl = ref<HTMLInputElement | null>(null);
+const inputText = ref('');
+const focused = ref(false);
 
 function focusInput() {
-  inputEl.value?.focus()
+  inputEl.value?.focus();
 }
 
 function addTag() {
-  const val = inputText.value.trim()
-  if (!val) return
+  const val = inputText.value.trim();
+  if (!val) return;
   if (!props.modelValue.includes(val)) {
-    emit('update:modelValue', [...props.modelValue, val])
+    emit('update:modelValue', [...props.modelValue, val]);
   }
-  inputText.value = ''
+  inputText.value = '';
 }
 
 function removeTag(idx: number) {
-  const next = [...props.modelValue]
-  next.splice(idx, 1)
-  emit('update:modelValue', next)
+  const next = [...props.modelValue];
+  next.splice(idx, 1);
+  emit('update:modelValue', next);
 }
 
 function clearAll() {
-  emit('update:modelValue', [])
-  inputText.value = ''
+  emit('update:modelValue', []);
+  inputText.value = '';
 }
 
 function onBackspace() {
   if (inputText.value === '' && props.modelValue.length > 0) {
-    removeTag(props.modelValue.length - 1)
+    removeTag(props.modelValue.length - 1);
   }
 }
 
 function onBlur() {
   // 失焦时将未提交的文字自动创建为 tag
-  const val = inputText.value.trim()
+  const val = inputText.value.trim();
   if (val && !props.modelValue.includes(val)) {
-    emit('update:modelValue', [...props.modelValue, val])
+    emit('update:modelValue', [...props.modelValue, val]);
   }
-  inputText.value = ''
-  focused.value = false
+  inputText.value = '';
+  focused.value = false;
 }
 </script>
 

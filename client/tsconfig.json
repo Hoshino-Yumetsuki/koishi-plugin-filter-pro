@@ -6,12 +6,7 @@
     "jsx": "preserve",
     "strict": true,
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
-  "include": [
-    "./**/*.ts",
-    "./**/*.vue"
-  ]
+  "include": ["./**/*.ts", "./**/*.vue"]
 }

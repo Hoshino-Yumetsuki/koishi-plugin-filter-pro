@@ -19,27 +19,15 @@
             <!-- 搜索和全选 -->
             <div class="toolbar">
               <label class="checkbox-item select-all">
-                <input
-                  type="checkbox"
-                  :checked="isAllSelected"
-                  @change="toggleSelectAll"
-                />
+                <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
                 <span>全选</span>
               </label>
-              <input
-                v-model="searchText"
-                class="search-input"
-                :placeholder="searchPlaceholder"
-              />
+              <input v-model="searchText" class="search-input" :placeholder="searchPlaceholder" />
             </div>
 
             <!-- 插件/指令列表 -->
             <div class="plugin-list">
-              <label
-                v-for="plugin in filteredPlugins"
-                :key="plugin.key"
-                class="checkbox-item"
-              >
+              <label v-for="plugin in filteredPlugins" :key="plugin.key" class="checkbox-item">
                 <input
                   type="checkbox"
                   :value="plugin.key"
@@ -65,131 +53,125 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue';
 
 interface PluginOption {
-  key: string
-  name: string
-  ident: string
-  label: string
+  key: string;
+  name: string;
+  ident: string;
+  label: string;
 }
 
 const props = defineProps<{
-  modelValue: string[]
-  options: PluginOption[]
-  mode?: 'plugin' | 'command' // 区分插件或指令模式
-}>()
+  modelValue: string[];
+  options: PluginOption[];
+  mode?: 'plugin' | 'command'; // 区分插件或指令模式
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string[]]
-}>()
+  'update:modelValue': [value: string[]];
+}>();
 
-const showDialog = ref(false)
-const searchText = ref('')
-const localSelected = ref<string[]>([...props.modelValue])
+const showDialog = ref(false);
+const searchText = ref('');
+const localSelected = ref<string[]>([...props.modelValue]);
 
 // 是否为指令模式
-const isCommandMode = computed(() => props.mode === 'command')
+const isCommandMode = computed(() => props.mode === 'command');
 
 // 对话框标题
-const dialogTitle = computed(() =>
-  isCommandMode.value ? '选择指令' : '选择插件实例'
-)
+const dialogTitle = computed(() => (isCommandMode.value ? '选择指令' : '选择插件实例'));
 
 // 搜索框占位符
-const searchPlaceholder = computed(() =>
-  isCommandMode.value ? '搜索指令...' : '搜索插件...'
-)
+const searchPlaceholder = computed(() => (isCommandMode.value ? '搜索指令...' : '搜索插件...'));
 
 // 空状态文本
 const emptyText = computed(() =>
   isCommandMode.value ? '没有找到匹配的指令' : '没有找到匹配的插件'
-)
+);
 
 // 显示文本
 const displayText = computed(() => {
-  const itemType = isCommandMode.value ? '指令' : '插件'
-  const selectPrompt = isCommandMode.value ? '请选择指令' : '请选择插件实例'
+  const itemType = isCommandMode.value ? '指令' : '插件';
+  const selectPrompt = isCommandMode.value ? '请选择指令' : '请选择插件实例';
 
-  if (localSelected.value.length === 0) return selectPrompt
+  if (localSelected.value.length === 0) return selectPrompt;
   if (localSelected.value.length === 1) {
-    const plugin = props.options.find((p) => p.key === localSelected.value[0])
-    return plugin?.label || `已选择 1 个${itemType}`
+    const plugin = props.options.find((p) => p.key === localSelected.value[0]);
+    return plugin?.label || `已选择 1 个${itemType}`;
   }
-  return `已选择 ${localSelected.value.length} 个${itemType}`
-})
+  return `已选择 ${localSelected.value.length} 个${itemType}`;
+});
 
 // 过滤后的插件列表
 const filteredPlugins = computed(() => {
-  if (!searchText.value) return props.options
-  const search = searchText.value.toLowerCase()
-  return props.options.filter((p) =>
-    p.label.toLowerCase().includes(search)
-  )
-})
+  if (!searchText.value) return props.options;
+  const search = searchText.value.toLowerCase();
+  return props.options.filter((p) => p.label.toLowerCase().includes(search));
+});
 
 // 是否全选
 const isAllSelected = computed(() => {
   return (
     filteredPlugins.value.length > 0 &&
     filteredPlugins.value.every((p) => localSelected.value.includes(p.key))
-  )
-})
+  );
+});
 
 // 切换单个插件
 function togglePlugin(key: string) {
-  const index = localSelected.value.indexOf(key)
+  const index = localSelected.value.indexOf(key);
   if (index > -1) {
-    localSelected.value.splice(index, 1)
+    localSelected.value.splice(index, 1);
   } else {
-    localSelected.value.push(key)
+    localSelected.value.push(key);
   }
 }
 
 // 切换全选
 function toggleSelectAll(e: Event) {
-  const checked = (e.target as HTMLInputElement).checked
+  const checked = (e.target as HTMLInputElement).checked;
   if (checked) {
     // 全选当前过滤的插件
     for (const plugin of filteredPlugins.value) {
       if (!localSelected.value.includes(plugin.key)) {
-        localSelected.value.push(plugin.key)
+        localSelected.value.push(plugin.key);
       }
     }
   } else {
     // 取消选择当前过滤的插件
     localSelected.value = localSelected.value.filter(
       (key) => !filteredPlugins.value.some((p) => p.key === key)
-    )
+    );
   }
 }
 
 // 确定
 function confirm() {
-  emit('update:modelValue', [...localSelected.value])
-  showDialog.value = false
+  emit('update:modelValue', [...localSelected.value]);
+  showDialog.value = false;
 }
 
 // 取消
 function cancel() {
-  localSelected.value = [...props.modelValue]
-  showDialog.value = false
+  localSelected.value = [...props.modelValue];
+  showDialog.value = false;
 }
 
 // 监听外部变化
 watch(
   () => props.modelValue,
   (val) => {
-    localSelected.value = [...val]
+    localSelected.value = [...val];
   }
-)
+);
 
 // 打开对话框时重置搜索
 watch(showDialog, (val) => {
   if (val) {
-    searchText.value = ''
+    searchText.value = '';
   }
-})
+});
 </script>
 
 <style scoped>
@@ -282,7 +264,9 @@ watch(showDialog, (val) => {
   color: var(--k-text-secondary, #888);
   cursor: pointer;
   font-size: 18px;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .close-btn:hover {

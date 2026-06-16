@@ -1,22 +1,22 @@
-import { defineConfig } from 'rolldown'
-import pkg from './package.json' with { type: 'json' }
-import { dts } from 'rolldown-plugin-dts'
-import vue from '@vitejs/plugin-vue'
-import fs from 'node:fs'
-import path from 'node:path'
+import { defineConfig } from 'rolldown';
+import pkg from './package.json' with { type: 'json' };
+import { dts } from 'rolldown-plugin-dts';
+import vue from '@vitejs/plugin-vue';
+import fs from 'node:fs';
+import path from 'node:path';
 
 function renameCssPlugin(from, to) {
   return {
     name: 'rename-css',
     writeBundle(options) {
-      const dir = options.dir || path.dirname(options.file)
-      const fromPath = path.join(dir, from)
-      const toPath = path.join(dir, to)
+      const dir = options.dir || path.dirname(options.file);
+      const fromPath = path.join(dir, from);
+      const toPath = path.join(dir, to);
       if (fs.existsSync(fromPath)) {
-        fs.renameSync(fromPath, toPath)
+        fs.renameSync(fromPath, toPath);
       }
     }
-  }
+  };
 }
 
 const serverExternal = new RegExp(
@@ -25,9 +25,9 @@ const serverExternal = new RegExp(
     ...Object.getOwnPropertyNames(pkg.dependencies ?? {}),
     ...Object.getOwnPropertyNames(pkg.peerDependencies ?? {})
   ].join('|')})`
-)
+);
 
-const clientExternal = /^(@koishijs\/|vue$|@vueuse\/|schemastery)/
+const clientExternal = /^(@koishijs\/|vue$|@vueuse\/|schemastery)/;
 
 const serverConfigs = [
   {
@@ -49,7 +49,7 @@ const serverConfigs = [
     plugins: [dts({ emitDtsOnly: true })],
     external: serverExternal
   }
-]
+];
 
 const clientConfigs = [
   {
@@ -67,6 +67,6 @@ const clientConfigs = [
     plugins: [vue(), renameCssPlugin('index.css', 'style.css')],
     external: clientExternal
   }
-]
+];
 
-export default defineConfig([...serverConfigs, ...clientConfigs])
+export default defineConfig([...serverConfigs, ...clientConfigs]);

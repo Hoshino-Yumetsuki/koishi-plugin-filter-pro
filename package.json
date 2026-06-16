@@ -22,8 +22,8 @@
   "scripts": {
     "build": "yarn rolldown -c rolldown.config.js",
     "publish": "yarn npm publish",
-    "lint": "biome check && biome lint",
-    "lint-fix": "biome format --write && biome lint --write"
+    "lint": "oxlint",
+    "lint-fix": "oxlint --fix && oxfmt"
   },
   "contributors": [
     "q78kg <hoshino-yumetsuki@outlook.com>",
@@ -56,13 +56,14 @@
     "koishi": "^4.18.10"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
     "@koishijs/client": "^5.30.11",
     "@koishijs/plugin-console": "^5.30.11",
     "@koishijs/plugin-proxy-agent": "^0.3.3",
     "@types/node": "^25.3.0",
     "@vitejs/plugin-vue": "^6.0.4",
     "koishi": "^4.18.10",
+    "oxfmt": "^0.55.0",
+    "oxlint": "^1.70.0",
     "rolldown": "^1.0.0-rc.5",
     "rolldown-plugin-dts": "^0.22.1"
   }

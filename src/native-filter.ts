@@ -1,6 +1,6 @@
-import { evaluateExpr } from './evaluator'
-import { sortRules } from './rule-utils'
-import type { FilterFn, RuleItem, RuleState } from './types'
+import { evaluateExpr } from './evaluator';
+import { sortRules } from './rule-utils';
+import type { FilterFn, RuleItem, RuleState } from './types';
 
 export function buildVars(session: any, extras: Record<string, unknown> = {}) {
   return {
@@ -16,7 +16,7 @@ export function buildVars(session: any, extras: Record<string, unknown> = {}) {
     author: session.author,
     quote: session.quote,
     ...extras
-  }
+  };
 }
 
 export function evaluatePluginRules(
@@ -25,52 +25,51 @@ export function evaluatePluginRules(
   session: any,
   trace?: (stage: string, payload: Record<string, unknown>) => void
 ): boolean {
-  const vars = buildVars(session, { pluginKey })
+  const vars = buildVars(session, { pluginKey });
   for (const rule of sortRules(state.rules)) {
-    if (!rule.enabled) continue
-    if (rule.target.type !== 'plugin') continue
+    if (!rule.enabled) continue;
+    if (rule.target.type !== 'plugin') continue;
 
     // 检查插件是否匹配（支持数组）
-    let pluginMatched = false
+    let pluginMatched = false;
     if (Array.isArray(rule.target.value)) {
-      pluginMatched = rule.target.value.includes(pluginKey)
+      pluginMatched = rule.target.value.includes(pluginKey);
     } else if (typeof rule.target.value === 'string') {
-      pluginMatched = rule.target.value.trim() === pluginKey
+      pluginMatched = rule.target.value.trim() === pluginKey;
     }
 
-    if (!pluginMatched) continue
+    if (!pluginMatched) continue;
 
-    const matched = evaluateExpr(rule.condition, vars)
+    const matched = evaluateExpr(rule.condition, vars);
     trace?.('native-filter:evaluate', {
       pluginKey,
       ruleId: rule.id,
       ruleName: rule.name,
       action: rule.action,
       matched
-    })
-    if (!matched) continue
-    return rule.action === 'bypass'
+    });
+    if (!matched) continue;
+    return rule.action === 'bypass';
   }
-  return true
+  return true;
 }
 
 export function collectActivePluginKeys(rules: RuleItem[]) {
-  const activeKeys = new Set<string>()
+  const activeKeys = new Set<string>();
 
   // 收集所有启用的插件规则的插件键
   for (const rule of rules) {
-    if (!rule.enabled || rule.target.type !== 'plugin' || !rule.target.value)
-      continue
+    if (!rule.enabled || rule.target.type !== 'plugin' || !rule.target.value) continue;
 
     if (Array.isArray(rule.target.value)) {
-      for (const key of rule.target.value) activeKeys.add(key)
+      for (const key of rule.target.value) activeKeys.add(key);
     } else if (typeof rule.target.value === 'string') {
-      const trimmed = rule.target.value.trim()
-      if (trimmed) activeKeys.add(trimmed)
+      const trimmed = rule.target.value.trim();
+      if (trimmed) activeKeys.add(trimmed);
     }
   }
 
-  return activeKeys
+  return activeKeys;
 }
 
 export function restoreInjectedFilters(
@@ -78,9 +77,9 @@ export function restoreInjectedFilters(
   injectedFilters: Map<any, FilterFn>
 ) {
   for (const [hostCtx, wrapped] of injectedFilters.entries()) {
-    if (hostCtx?.filter !== wrapped) continue
-    const original = originalFilters.get(hostCtx)
-    if (original) hostCtx.filter = original
+    if (hostCtx?.filter !== wrapped) continue;
+    const original = originalFilters.get(hostCtx);
+    if (original) hostCtx.filter = original;
   }
-  injectedFilters.clear()
+  injectedFilters.clear();
 }
