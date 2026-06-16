@@ -1,23 +1,6 @@
 import { defineConfig } from 'rolldown';
 import pkg from './package.json' with { type: 'json' };
 import { dts } from 'rolldown-plugin-dts';
-import vue from '@vitejs/plugin-vue';
-import fs from 'node:fs';
-import path from 'node:path';
-
-function renameCssPlugin(from, to) {
-  return {
-    name: 'rename-css',
-    writeBundle(options) {
-      const dir = options.dir || path.dirname(options.file);
-      const fromPath = path.join(dir, from);
-      const toPath = path.join(dir, to);
-      if (fs.existsSync(fromPath)) {
-        fs.renameSync(fromPath, toPath);
-      }
-    }
-  };
-}
 
 const serverExternal = new RegExp(
   `^(node:|${[
@@ -27,9 +10,7 @@ const serverExternal = new RegExp(
   ].join('|')})`
 );
 
-const clientExternal = /^(@koishijs\/|vue$|@vueuse\/|schemastery)/;
-
-const serverConfigs = [
+export default defineConfig([
   {
     input: './src/index.ts',
     platform: 'node',
@@ -49,24 +30,4 @@ const serverConfigs = [
     plugins: [dts({ emitDtsOnly: true })],
     external: serverExternal
   }
-];
-
-const clientConfigs = [
-  {
-    input: './client/index.ts',
-    platform: 'browser',
-    output: [
-      {
-        dir: 'dist',
-        entryFileNames: 'index.js',
-        assetFileNames: 'style.css',
-        format: 'es',
-        minify: true
-      }
-    ],
-    plugins: [vue(), renameCssPlugin('index.css', 'style.css')],
-    external: clientExternal
-  }
-];
-
-export default defineConfig([...serverConfigs, ...clientConfigs]);
+]);
