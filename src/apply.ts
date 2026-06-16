@@ -104,7 +104,7 @@ export function apply(ctx: Context, config: Config = {}) {
       }
 
       const wrapped: FilterFn = (session: any) => {
-        if (!original(session)) return false;
+        if (!original || !original(session)) return false;
         return evaluatePluginRules(pluginKey, state, session, trace);
       };
       hostCtx.filter = wrapped;
@@ -127,11 +127,8 @@ export function apply(ctx: Context, config: Config = {}) {
     restoreInjectedFilters(originalFilters, injectedFilters);
   });
 
-  // 语言过滤器：在 attach 阶段注入 locale，优先级：user > filter-pro > channel > guild
-  ctx.on('attach', async (session) => {
-    await ready;
-    const vars: Record<string, unknown> = buildVars(session);
-
+  // 共享的语言设置逻辑：在 vars 中匹配规则并设置 session.locales
+  const applyLocale = (session: any, vars: Record<string, unknown>): boolean => {
     for (const rule of sortRules(state.rules)) {
       if (!rule.enabled || !rule.locale) continue;
       if (!matchTarget(rule.target, vars)) continue;
@@ -154,8 +151,16 @@ export function apply(ctx: Context, config: Config = {}) {
         locale: rule.locale,
         resultLocales: (session as any).locales
       });
-      break;
+      return true;
     }
+    return false;
+  };
+
+  // 语言过滤器：在 attach 阶段注入 locale（消息级触发）
+  ctx.on('attach', async (session) => {
+    await ready;
+    const vars: Record<string, unknown> = buildVars(session);
+    applyLocale(session, vars);
   });
 
   ctx.on('command-added', (command) => {
@@ -233,8 +238,8 @@ export function apply(ctx: Context, config: Config = {}) {
   // 指令级拦截：仅对 target.type === 'command' 的规则生效
   ctx.before('command/execute', async (argv) => {
     await ready;
-    const plugin = pluginResolver.resolveByCommand(argv.command);
-    const commandName = String(argv.command.name ?? '');
+    const plugin = pluginResolver.resolveByCommand(argv.command ?? undefined);
+    const commandName = String(argv.command?.name ?? '');
     const vars: Record<string, unknown> = buildVars(argv.session, {
       commandName,
       pluginKey: plugin?.key,
@@ -250,6 +255,10 @@ export function apply(ctx: Context, config: Config = {}) {
       content: vars.content,
       ruleCount: state.rules.length
     });
+
+    // 语言过滤器：在 command/execute 阶段注入 locale（指令级触发，覆盖 attach 阶段的结果）
+    // 这对于 Discord 斜杠命令等场景至关重要，因为 attach 阶段可能没有 content 或 commandName
+    applyLocale(argv.session, vars);
 
     // 检查指令级规则
     for (const rule of sortRules(state.rules)) {
@@ -284,7 +293,7 @@ export function apply(ctx: Context, config: Config = {}) {
       });
 
       if (rule.response) {
-        await argv.session.send(rule.response);
+        await argv.session?.send(rule.response);
       }
       return '';
     }

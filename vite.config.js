@@ -9,14 +9,14 @@ export default defineConfig({
     lib: {
       entry: './client/index.ts',
       formats: ['es'],
-      fileName: () => 'index.js',
+      fileName: () => 'index.js'
     },
     rollupOptions: {
       external: [/^@koishijs\//, /^vue$/, /^@vueuse\//, /^schemastery/],
       output: {
-        assetFileNames: 'style.[ext]',
-      },
+        assetFileNames: 'style.[ext]'
+      }
     },
-    minify: true,
-  },
+    minify: true
+  }
 });
