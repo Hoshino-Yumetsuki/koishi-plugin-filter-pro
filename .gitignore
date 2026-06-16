@@ -35,5 +35,6 @@ kumoya
 # Added by cargo
 
 target
+.omc
 
 **/wasm/bindings.ts
