@@ -126,6 +126,38 @@ export function apply(ctx: Context, config: Config = {}) {
   ctx.on('dispose', () => {
     restoreInjectedFilters(originalFilters, injectedFilters);
   });
+
+  // 语言过滤器：在 attach 阶段注入 locale，优先级：user > filter-pro > channel > guild
+  ctx.on('attach', async (session) => {
+    await ready;
+    const vars: Record<string, unknown> = buildVars(session);
+
+    for (const rule of sortRules(state.rules)) {
+      if (!rule.enabled || !rule.locale) continue;
+      if (!matchTarget(rule.target, vars)) continue;
+      const matched = evaluateExpr(rule.condition, vars);
+      trace('locale:evaluate', {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        locale: rule.locale,
+        matched
+      });
+      if (!matched) continue;
+
+      // 将用户语言放在最前，filter-pro locale 紧随其后
+      // session.locales 在 i18n() 中优先级最高，且 fallback() 会去重
+      // 最终优先级：user > filter-pro locale > channel > guild > global
+      const userLocales = (session as any).user?.locales || [];
+      (session as any).locales = [...userLocales, rule.locale];
+      trace('locale:applied', {
+        ruleId: rule.id,
+        locale: rule.locale,
+        resultLocales: (session as any).locales
+      });
+      break;
+    }
+  });
+
   ctx.on('command-added', (command) => {
     pluginResolver.bindCommand(command);
     trace('command:added', {

@@ -49,6 +49,7 @@ export interface RuleItem {
   target: RuleTarget;
   condition: RuleExpr;
   response?: string;
+  locale?: string;
 }
 
 export interface Config {
@@ -65,6 +66,7 @@ export interface RuleInput {
   target?: RuleTarget;
   condition?: RuleExpr;
   response?: string;
+  locale?: string;
 }
 
 export interface RuleState {

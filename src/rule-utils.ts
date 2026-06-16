@@ -26,7 +26,8 @@ export function cloneRule(rule: RuleItem): RuleItem {
     action: rule.action,
     target: { ...rule.target },
     condition: cloneExpr(rule.condition),
-    response: rule.response
+    response: rule.response,
+    locale: rule.locale
   };
 }
 
@@ -123,7 +124,8 @@ export function normalizeRule(input: RuleInput): RuleItem {
     action: input.action || 'block',
     target,
     condition: normalizeExpr(input.condition),
-    response: input.response ?? ''
+    response: input.response ?? '',
+    locale: input.locale || ''
   };
 }
 

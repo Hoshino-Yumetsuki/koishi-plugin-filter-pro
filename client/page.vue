@@ -25,6 +25,7 @@
               <div class="meta">
                 <span>#{{ rule.priority }}</span>
                 <span>{{ getTargetDisplay(rule.target) }}</span>
+                <span v-if="rule.locale">{{ rule.locale }}</span>
                 <span>{{ rule.enabled ? '启用' : '停用' }}</span>
               </div>
             </button>
@@ -101,6 +102,15 @@
               <label class="field">
                 <span>动作</span>
                 <FpSelect v-model="currentRule.action" :options="actionOptions" />
+              </label>
+
+              <label class="field">
+                <span>响应语言</span>
+                <input
+                  class="input"
+                  v-model="currentRule.locale"
+                  placeholder="如 zh-CN, en-US, ja-JP（留空不设置）"
+                />
               </label>
 
               <label class="field">
@@ -193,6 +203,7 @@ interface RuleItem {
   };
   condition: RuleExpr;
   response?: string;
+  locale?: string;
 }
 
 interface PluginTargetOption {
@@ -298,7 +309,8 @@ async function createRule() {
     action: 'block',
     target: { type: 'global', value: '' },
     condition: defaultExpr(),
-    response: ''
+    response: '',
+    locale: ''
   });
   await refresh();
   selectedId.value = sortedRules.value.at(-1)?.id || selectedId.value;
@@ -342,7 +354,8 @@ async function saveRule(rule: RuleItem) {
     action: rule.action,
     target,
     condition: rule.condition,
-    response: rule.response || ''
+    response: rule.response || '',
+    locale: rule.locale || ''
   });
   await refresh();
   message.success('保存成功');
