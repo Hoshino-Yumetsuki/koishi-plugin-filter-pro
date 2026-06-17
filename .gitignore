@@ -36,5 +36,6 @@ kumoya
 
 target
 .omc
+.omo
 
 **/wasm/bindings.ts

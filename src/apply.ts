@@ -156,11 +156,27 @@ export function apply(ctx: Context, config: Config = {}) {
     return false;
   };
 
-  // 语言过滤器：在 attach 阶段注入 locale（消息级触发）
+  // 语言过滤器：在 attach 阶段注入 locale（消息级触发，对文本消息有效）
+  // 注意：此 handler 对 Discord/Telegram 斜杠命令不触发（interaction/command 不走 middleware 管道）
   ctx.on('attach', async (session) => {
     await ready;
     const vars: Record<string, unknown> = buildVars(session);
     applyLocale(session, vars);
+  });
+
+  // 交互命令处理器：在 Discord/Telegram 斜杠命令到达 command/execute 之前注入 locale
+  // 这是 attach 事件的补充——对 interaction/command 类型的事件，attach 不会触发
+  ctx.on('interaction/command', async (session) => {
+    await ready;
+    const vars: Record<string, unknown> = buildVars(session);
+    applyLocale(session, vars);
+    trace('interaction:incoming', {
+      commandName: vars.commandName,
+      platform: vars.platform,
+      type: vars.type,
+      content: vars.content,
+      isDirect: vars.isDirect
+    });
   });
 
   ctx.on('command-added', (command) => {
@@ -235,7 +251,9 @@ export function apply(ctx: Context, config: Config = {}) {
     return next();
   }, true);
 
-  // 指令级拦截：仅对 target.type === 'command' 的规则生效
+  // 指令级拦截：同时处理 command 和 global 类型规则（覆盖 Discord/Telegram 斜杠命令场景）
+  // global 类型规则在 middleware 中仅对文本消息生效；对于 interaction/command（如 Discord
+  // 斜杠命令），需在此 hook 中额外处理才能拦截命令并注入语言。
   ctx.before('command/execute', async (argv) => {
     await ready;
     const plugin = pluginResolver.resolveByCommand(argv.command ?? undefined);
@@ -246,6 +264,8 @@ export function apply(ctx: Context, config: Config = {}) {
       pluginName: plugin?.name
     });
 
+    const isInteraction = String(vars.type) === 'interaction/command';
+
     trace('command:incoming', {
       command: vars.commandName,
       pluginKey: vars.pluginKey,
@@ -253,6 +273,8 @@ export function apply(ctx: Context, config: Config = {}) {
       isDirect: vars.isDirect,
       guildId: vars.guildId,
       content: vars.content,
+      type: vars.type,
+      isInteraction,
       ruleCount: state.rules.length
     });
 
@@ -260,16 +282,17 @@ export function apply(ctx: Context, config: Config = {}) {
     // 这对于 Discord 斜杠命令等场景至关重要，因为 attach 阶段可能没有 content 或 commandName
     applyLocale(argv.session, vars);
 
-    // 检查指令级规则
+    // 先检查 command 类型规则（精确匹配），再检查 global 类型规则（兜底拦截）
     for (const rule of sortRules(state.rules)) {
       if (!rule.enabled) continue;
-      if (rule.target.type !== 'command') continue;
+      if (rule.target.type !== 'command' && rule.target.type !== 'global') continue;
       if (!matchTarget(rule.target, vars)) continue;
 
       const matched = evaluateExpr(rule.condition, vars);
       trace('command:evaluate', {
         ruleId: rule.id,
         ruleName: rule.name,
+        targetType: rule.target.type,
         action: rule.action,
         matched,
         commandName
@@ -280,6 +303,7 @@ export function apply(ctx: Context, config: Config = {}) {
       if (rule.action === 'bypass') {
         trace('command:action', {
           ruleId: rule.id,
+          targetType: rule.target.type,
           action: 'bypass'
         });
         return;
@@ -288,6 +312,7 @@ export function apply(ctx: Context, config: Config = {}) {
       // 拦截指令
       trace('command:action', {
         ruleId: rule.id,
+        targetType: rule.target.type,
         action: 'block',
         response: rule.response || ''
       });
@@ -299,7 +324,7 @@ export function apply(ctx: Context, config: Config = {}) {
     }
 
     trace('command:pass', {
-      reason: 'no-command-rule-matched'
+      reason: 'no-rule-matched'
     });
   });
 

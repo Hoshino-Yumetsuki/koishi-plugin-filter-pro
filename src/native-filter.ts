@@ -3,6 +3,11 @@ import { sortRules } from './rule-utils';
 import type { FilterFn, RuleItem, RuleState } from './types';
 
 export function buildVars(session: any, extras: Record<string, unknown> = {}) {
+  // 从 session.event.argv 提取斜杠命令名（Discord/Telegram 等平台的 interaction/command）
+  // session.content 对斜杠命令为空字符串，但 event.argv.name 包含实际的命令名
+  const argv = session.event?.argv
+  const argvCommandName = argv?.name ? String(argv.name) : ''
+
   return {
     platform: String(session.platform ?? ''),
     selfId: String(session.selfId ?? ''),
@@ -15,7 +20,8 @@ export function buildVars(session: any, extras: Record<string, unknown> = {}) {
     event: session.event,
     author: session.author,
     quote: session.quote,
-    ...extras
+    commandName: argvCommandName,
+    ...extras // extras.commandName 会覆盖基础提取值（精确优先）
   };
 }
 
