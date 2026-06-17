@@ -26,8 +26,8 @@ export function apply(ctx: Context, config: Config = {}) {
 
   const trace = (stage: string, payload: Record<string, unknown>) => {
     if (!config.debug) return;
-    if (stage !== 'native-filter:evaluate') return;
-    if (!payload?.matched) return;
+    const isJudge = stage.includes(':evaluate') || stage === 'native-filter:evaluate';
+    if (isJudge && !payload?.matched) return;
     logger.info('[trace:%s] %s', stage, JSON.stringify(payload));
   };
 
@@ -39,7 +39,7 @@ export function apply(ctx: Context, config: Config = {}) {
     await mkdir(dataDir, { recursive: true });
     const loaded = await readRules(dataFile);
     if (loaded) {
-      state.rules = loaded;
+      state.rules = loaded.map(normalizeRule);
       return;
     }
     state.rules = [];
