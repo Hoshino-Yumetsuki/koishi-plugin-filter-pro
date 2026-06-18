@@ -68,8 +68,21 @@ export function createPluginResolver(
 
   const resolveByScope = (scope: any): PluginTargetOption | undefined => {
     if (!scope) return;
-    const direct = byScope.get(scope);
-    if (direct) return direct;
+
+    // 遍历 scope 链：scope.parent(→Context).scope(→父EffectScope) 逐级向上
+    let current = scope;
+    const visited = new Set<any>();
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      const found = byScope.get(current);
+      if (found) return found;
+      // EffectScope.parent → Context（直接属性），Context.scope → 父 EffectScope
+      const parentCtx = current.parent;
+      if (!parentCtx) break;
+      const parentScope = parentCtx.scope;
+      if (!parentScope || parentScope === current) break;
+      current = parentScope;
+    }
 
     const loader = (ctx as any).loader;
     if (loader?.paths) {
