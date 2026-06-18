@@ -442,7 +442,7 @@ function parseValue(text: string): unknown {
   if (t === 'false') return false;
   if (t === 'null') return null;
   const n = Number(t);
-  if (Number.isFinite(n)) return n;
+  if (Number.isFinite(n) && Number.isSafeInteger(n)) return n;
   return text;
 }
 

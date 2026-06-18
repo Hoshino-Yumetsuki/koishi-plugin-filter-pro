@@ -64,6 +64,7 @@
               <label class="field" v-if="currentRule.target.type === 'plugin'">
                 <span>插件实例</span>
                 <PluginSelector
+                  :key="'plugin-' + currentRule.id"
                   mode="plugin"
                   :model-value="
                     Array.isArray(currentRule.target.value)
@@ -81,6 +82,7 @@
               <label class="field" v-if="currentRule.target.type === 'command'">
                 <span>作用指令</span>
                 <PluginSelector
+                  :key="'command-' + currentRule.id"
                   mode="command"
                   :model-value="
                     Array.isArray(currentRule.target.value)
@@ -101,12 +103,12 @@
                 />
               </label>
 
-              <label class="field">
+              <label class="field" v-if="!currentRule.localeOnly">
                 <span>动作</span>
                 <FpSelect v-model="currentRule.action" :options="actionOptions" />
               </label>
 
-              <label class="field">
+              <label class="field" v-if="!currentRule.localeOnly">
                 <span>模式</span>
                 <FpSelect v-model="currentRule.mode" :options="modeOptions" />
               </label>
@@ -311,12 +313,21 @@ function getTargetDisplay(target: { type: TargetType; value?: string | string[] 
   return '未知';
 }
 
-// 监听目标类型变化，清空已选值
+// 监听目标类型变化，清空已选值（仅限同一规则内的类型切换，不响应规则切换）
 watch(
-  () => currentRule.value?.target.type,
-  (newType, oldType) => {
-    if (newType && oldType && newType !== oldType && currentRule.value) {
-      currentRule.value.target.value = newType === 'global' ? '' : [];
+  () =>
+    currentRule.value
+      ? { id: currentRule.value.id, type: currentRule.value.target.type }
+      : null,
+  (newVal, oldVal) => {
+    if (
+      newVal &&
+      oldVal &&
+      newVal.id === oldVal.id &&
+      newVal.type !== oldVal.type &&
+      currentRule.value
+    ) {
+      currentRule.value.target.value = newVal.type === 'global' ? '' : [];
     }
   }
 );
