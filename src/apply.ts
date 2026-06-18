@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 
 import type { Context } from 'koishi';
 
-import { evaluateExpr } from './evaluator';
+import { evaluateExpr, evaluateAllRules } from './evaluator';
 import {
   buildVars,
   collectActivePluginKeys,
@@ -14,6 +14,7 @@ import { createPersister, readRules } from './persistence';
 import { FilterProProvider } from './provider';
 import { cloneRule, matchTarget, normalizeRule, sortRules } from './rule-utils';
 import { collectPluginForks, createPluginResolver } from './resolver';
+import { createCommandVisibilityManager } from './command-hide';
 import type { Config, FilterFn, PluginTargetOption, RuleInput, RuleState } from './types';
 
 export function apply(ctx: Context, config: Config = {}) {
@@ -32,6 +33,7 @@ export function apply(ctx: Context, config: Config = {}) {
   };
 
   const pluginResolver = createPluginResolver(ctx, trace);
+  const visibility = createCommandVisibilityManager();
   const originalFilters = new Map<any, FilterFn>();
   const injectedFilters = new Map<any, FilterFn>();
 
@@ -114,6 +116,12 @@ export function apply(ctx: Context, config: Config = {}) {
     trace('native-filter:sync:done', {
       activeTargetCount: activeKeys.size
     });
+
+    // 同步命令 visibility 标记：根据当前规则更新 hidden Computed 和 slash 标志
+    const allCommands = (ctx as any)?.$commander?._commandList;
+    if (Array.isArray(allCommands)) {
+      visibility.apply(allCommands, state);
+    }
   };
 
   void refreshPluginTargets();
@@ -125,6 +133,10 @@ export function apply(ctx: Context, config: Config = {}) {
   ctx.on('internal/runtime', applyNativeFilterInjection);
   ctx.on('dispose', () => {
     restoreInjectedFilters(originalFilters, injectedFilters);
+    const allCommands = (ctx as any)?.$commander?._commandList;
+    if (Array.isArray(allCommands)) {
+      visibility.restore(allCommands);
+    }
   });
 
   // 共享的语言设置逻辑：在 vars 中匹配规则并设置 session.locales
@@ -181,6 +193,9 @@ export function apply(ctx: Context, config: Config = {}) {
 
   ctx.on('command-added', (command) => {
     pluginResolver.bindCommand(command);
+    // 对新命令应用 visibility 标记（hidden Computed + slash 标志）
+    // hidden Computed 延迟评估，所以即使 state.rules 尚未加载也可以安全设置
+    visibility.apply([command], state);
     trace('command:added', {
       command: String((command as any)?.name ?? '')
     });
@@ -200,60 +215,32 @@ export function apply(ctx: Context, config: Config = {}) {
       ruleCount: state.rules.length
     });
 
-    for (const rule of sortRules(state.rules)) {
-      if (!rule.enabled) continue;
-      if (rule.target.type !== 'global') continue;
-      if (!matchTarget(rule.target, vars)) {
-        trace('message:skip-target', {
-          ruleId: rule.id,
-          ruleName: rule.name,
-          target: rule.target,
-          pluginKey: vars.pluginKey
-        });
-        continue;
-      }
-      const matched = evaluateExpr(rule.condition, vars);
-      trace('message:evaluate', {
-        ruleId: rule.id,
-        ruleName: rule.name,
-        action: rule.action,
-        matched,
-        expr: rule.condition
-      });
-      if (!matched) continue;
-      if (rule.action === 'bypass') {
-        trace('message:action', {
-          ruleId: rule.id,
-          action: 'bypass'
-        });
-        return next();
-      }
-      if (rule.response) {
-        trace('message:action', {
-          ruleId: rule.id,
-          action: 'block',
-          response: rule.response
-        });
-        return rule.response;
-      }
-      trace('message:action', {
-        ruleId: rule.id,
-        action: 'block',
-        response: ''
-      });
-      return '';
+    const { result, rule } = evaluateAllRules(
+      state.rules.filter(r => r.target.type === 'global'),
+      vars,
+      vars
+    );
+
+    if (result === 'allow') {
+      trace('message:pass', { reason: 'rule-allowed-or-no-match' });
+      return next();
     }
 
-    trace('message:pass', {
-      reason: 'no-rule-matched'
+    // Block
+    trace('message:action', {
+      ruleId: rule?.id,
+      action: 'block',
+      response: rule?.response || ''
     });
 
-    return next();
+    if (rule?.response) {
+      return rule.response;
+    }
+    return '';
   }, true);
 
   // 指令级拦截：同时处理 command 和 global 类型规则（覆盖 Discord/Telegram 斜杠命令场景）
-  // global 类型规则在 middleware 中仅对文本消息生效；对于 interaction/command（如 Discord
-  // 斜杠命令），需在此 hook 中额外处理才能拦截命令并注入语言。
+  // whitelist 模式需要 pluginKey（从 command 解析插件），传入 targetVars
   ctx.before('command/execute', async (argv) => {
     await ready;
     const plugin = pluginResolver.resolveByCommand(argv.command ?? undefined);
@@ -278,54 +265,26 @@ export function apply(ctx: Context, config: Config = {}) {
       ruleCount: state.rules.length
     });
 
-    // 语言过滤器：在 command/execute 阶段注入 locale（指令级触发，覆盖 attach 阶段的结果）
-    // 这对于 Discord 斜杠命令等场景至关重要，因为 attach 阶段可能没有 content 或 commandName
     applyLocale(argv.session, vars);
 
-    // 先检查 command 类型规则（精确匹配），再检查 global 类型规则（兜底拦截）
-    for (const rule of sortRules(state.rules)) {
-      if (!rule.enabled) continue;
-      if (rule.target.type !== 'command' && rule.target.type !== 'global') continue;
-      if (!matchTarget(rule.target, vars)) continue;
+    const { result, rule } = evaluateAllRules(state.rules, vars, vars);
 
-      const matched = evaluateExpr(rule.condition, vars);
-      trace('command:evaluate', {
-        ruleId: rule.id,
-        ruleName: rule.name,
-        targetType: rule.target.type,
-        action: rule.action,
-        matched,
-        commandName
-      });
-
-      if (!matched) continue;
-
-      if (rule.action === 'bypass') {
-        trace('command:action', {
-          ruleId: rule.id,
-          targetType: rule.target.type,
-          action: 'bypass'
-        });
-        return;
-      }
-
-      // 拦截指令
-      trace('command:action', {
-        ruleId: rule.id,
-        targetType: rule.target.type,
-        action: 'block',
-        response: rule.response || ''
-      });
-
-      if (rule.response) {
-        await argv.session?.send(rule.response);
-      }
-      return '';
+    if (result === 'allow') {
+      trace('command:pass', { reason: 'rule-allowed-or-no-match' });
+      return;
     }
 
-    trace('command:pass', {
-      reason: 'no-rule-matched'
+    trace('command:action', {
+      ruleId: rule?.id,
+      targetType: rule?.target?.type,
+      action: 'block',
+      response: rule?.response || ''
     });
+
+    if (rule?.response) {
+      await argv.session?.send(rule.response);
+    }
+    return '';
   });
 
   ctx.inject(['console'], (ctx) => {

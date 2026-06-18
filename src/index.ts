@@ -15,6 +15,7 @@ export const Config = ConfigSchema;
 
 export type {
   RuleAction,
+  RuleMode,
   GroupOperator,
   CompareOperator,
   TargetType,

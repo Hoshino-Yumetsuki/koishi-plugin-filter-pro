@@ -1,4 +1,5 @@
-import type { CompareExpr, RuleExpr } from './types';
+import type { CompareExpr, RuleExpr, RuleItem } from './types';
+import { matchTarget, sortRules } from './rule-utils';
 
 function getByPath(source: Record<string, unknown>, path: string): unknown {
   if (!path) return undefined;
@@ -120,4 +121,56 @@ export function evaluateExpr(expr: RuleExpr, vars: Record<string, unknown>): boo
     return !evaluateExpr(expr.child, vars);
   }
   return evaluateCompare(getByPath(vars, expr.field), expr);
+}
+
+export type EvalResult = 'block' | 'allow' | 'pass';
+
+/**
+ * 对单条规则进行模式感知评估。返回：
+ *   'block'  - 目标应被拦截
+ *   'allow'  - 目标应被放行（blacklist 中的 bypass / whitelist 中的匹配项）
+ *   'pass'   - 此规则不适用（条件或目标不匹配）
+ *
+ * 规则语义：
+ *   blacklist + block: 匹配的目标被拦截
+ *   blacklist + bypass: 匹配的目标被放行（覆盖低优先级规则）
+ *   whitelist + block: 仅匹配的目标被放行，不匹配的（但条件匹配）被拦截
+ *   whitelist + bypass: 匹配的目标被放行
+ */
+export function evaluateRule(
+  rule: RuleItem,
+  vars: Record<string, unknown>,
+  targetVars: Record<string, unknown>
+): EvalResult {
+  if (!rule.enabled) return 'pass';
+
+  const conditionMatched = evaluateExpr(rule.condition, vars);
+  if (!conditionMatched) return 'pass'; // 条件不满足 → 规则不适用
+
+  if (rule.mode === 'whitelist') {
+    // 白名单模式：条件满足时，匹配目标 → 放行，不匹配目标 → 拦截
+    if (matchTarget(rule.target, targetVars)) return 'allow';
+    return 'block';
+  }
+
+  // 黑名单模式（默认）
+  if (!matchTarget(rule.target, targetVars)) return 'pass';
+  return rule.action === 'bypass' ? 'allow' : 'block';
+}
+
+/**
+ * 按优先级评估规则列表，先匹配先赢。
+ * 如果没有规则匹配，默认放行。
+ * 返回匹配的规则引用，用于获取自定义响应文本。
+ */
+export function evaluateAllRules(
+  rules: RuleItem[],
+  vars: Record<string, unknown>,
+  targetVars: Record<string, unknown>
+): { result: 'block' | 'allow'; rule?: RuleItem } {
+  for (const rule of sortRules(rules)) {
+    const result = evaluateRule(rule, vars, targetVars);
+    if (result !== 'pass') return { result, rule };
+  }
+  return { result: 'allow' };
 }

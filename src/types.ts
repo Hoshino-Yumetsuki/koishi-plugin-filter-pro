@@ -1,4 +1,5 @@
 export type RuleAction = 'bypass' | 'block';
+export type RuleMode = 'blacklist' | 'whitelist';
 export type GroupOperator = 'and' | 'or';
 export type CompareOperator =
   | 'eq'
@@ -46,6 +47,7 @@ export interface RuleItem {
   enabled: boolean;
   priority: number;
   action: RuleAction;
+  mode: RuleMode;
   target: RuleTarget;
   condition: RuleExpr;
   response?: string;
@@ -63,6 +65,7 @@ export interface RuleInput {
   enabled?: boolean;
   priority?: number;
   action?: RuleAction;
+  mode?: RuleMode;
   target?: RuleTarget;
   condition?: RuleExpr;
   response?: string;

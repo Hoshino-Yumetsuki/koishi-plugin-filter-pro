@@ -1,5 +1,4 @@
-import { evaluateExpr } from './evaluator';
-import { sortRules } from './rule-utils';
+import { evaluateAllRules } from './evaluator';
 import type { FilterFn, RuleItem, RuleState } from './types';
 
 export function buildVars(session: any, extras: Record<string, unknown> = {}) {
@@ -32,32 +31,19 @@ export function evaluatePluginRules(
   trace?: (stage: string, payload: Record<string, unknown>) => void
 ): boolean {
   const vars = buildVars(session, { pluginKey });
-  for (const rule of sortRules(state.rules)) {
-    if (!rule.enabled) continue;
-    if (rule.target.type !== 'plugin') continue;
+  // 仅评估 plugin 类型规则（global/command 类型由各自的 hook 处理）
+  const pluginRules = state.rules.filter(r => r.target.type === 'plugin');
+  const { result, rule } = evaluateAllRules(pluginRules, vars, vars);
 
-    // 检查插件是否匹配（支持数组）
-    let pluginMatched = false;
-    if (Array.isArray(rule.target.value)) {
-      pluginMatched = rule.target.value.includes(pluginKey);
-    } else if (typeof rule.target.value === 'string') {
-      pluginMatched = rule.target.value.trim() === pluginKey;
-    }
+  trace?.('native-filter:evaluate', {
+    pluginKey,
+    ruleId: rule?.id,
+    ruleName: rule?.name,
+    action: rule?.action,
+    matched: result === 'allow'
+  });
 
-    if (!pluginMatched) continue;
-
-    const matched = evaluateExpr(rule.condition, vars);
-    trace?.('native-filter:evaluate', {
-      pluginKey,
-      ruleId: rule.id,
-      ruleName: rule.name,
-      action: rule.action,
-      matched
-    });
-    if (!matched) continue;
-    return rule.action === 'bypass';
-  }
-  return true;
+  return result === 'allow';
 }
 
 export function collectActivePluginKeys(rules: RuleItem[]) {
