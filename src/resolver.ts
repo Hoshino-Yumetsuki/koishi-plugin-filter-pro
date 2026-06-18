@@ -63,27 +63,40 @@ export function createPluginResolver(
 ) {
   let targets: PluginTargetOption[] = [];
   const byScope = new Map<any, PluginTargetOption>();
+  const byRuntime = new Map<any, PluginTargetOption>();
   const byKey = new Map<string, PluginTargetOption>();
   const byCommand = new WeakMap<any, PluginTargetOption>();
 
   const resolveByScope = (scope: any): PluginTargetOption | undefined => {
     if (!scope) return;
 
-    // 遍历 scope 链：scope.parent(→Context).scope(→父EffectScope) 逐级向上
+    // 1. 直接查找
+    const direct = byScope.get(scope);
+    if (direct) return direct;
+
+    // 2. 通过 runtime 匹配：同一 fork 下所有子 scope 共享同一个 runtime
+    const runtime = scope.runtime;
+    if (runtime) {
+      const byRt = byRuntime.get(runtime);
+      if (byRt) return byRt;
+    }
+
+    // 3. 遍历 scope 链：scope.parent(→Context).scope(→父EffectScope)
     let current = scope;
     const visited = new Set<any>();
-    while (current && !visited.has(current)) {
-      visited.add(current);
-      const found = byScope.get(current);
-      if (found) return found;
-      // EffectScope.parent → Context（直接属性），Context.scope → 父 EffectScope
+    visited.add(current);
+    while (current) {
       const parentCtx = current.parent;
       if (!parentCtx) break;
       const parentScope = parentCtx.scope;
-      if (!parentScope || parentScope === current) break;
+      if (!parentScope || visited.has(parentScope)) break;
+      visited.add(parentScope);
+      const found = byScope.get(parentScope);
+      if (found) return found;
       current = parentScope;
     }
 
+    // 4. loader.paths 兜底
     const loader = (ctx as any).loader;
     if (loader?.paths) {
       const paths = loader.paths(scope) as string[];
@@ -98,6 +111,7 @@ export function createPluginResolver(
   const rebuild = () => {
     targets = collectPluginTargets(ctx);
     byScope.clear();
+    byRuntime.clear();
     byKey.clear();
     for (const item of targets) {
       byKey.set(item.key, item);
@@ -116,7 +130,11 @@ export function createPluginResolver(
         const key = String(fullKey).replace(/^~/, '');
         const target = byKey.get(key);
         if (target && (fork as any)?.ctx?.scope) {
-          byScope.set((fork as any).ctx.scope, target);
+          const forkScope = (fork as any).ctx.scope;
+          byScope.set(forkScope, target);
+          if (forkScope.runtime) {
+            byRuntime.set(forkScope.runtime, target);
+          }
         }
         walk((fork as any)?.ctx);
       }
