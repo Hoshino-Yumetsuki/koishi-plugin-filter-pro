@@ -52,6 +52,7 @@ export interface RuleItem {
   condition: RuleExpr;
   response?: string;
   locale?: string;
+  localeOnly?: boolean;
 }
 
 export interface Config {
@@ -70,6 +71,7 @@ export interface RuleInput {
   condition?: RuleExpr;
   response?: string;
   locale?: string;
+  localeOnly?: boolean;
 }
 
 export interface RuleState {

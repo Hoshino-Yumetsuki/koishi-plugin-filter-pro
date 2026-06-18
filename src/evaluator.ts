@@ -24,7 +24,7 @@ function coerceNumber(value: unknown): number | null {
 function normalizeScalar(value: unknown): unknown {
   if (value == null) return value;
   if (typeof value === 'object') return value;
-  return String(value);
+  return String(value as string | number | boolean);
 }
 
 // 解析多值：优先处理数组（新格式），兼容逗号分割字符串（旧格式）
@@ -68,7 +68,7 @@ function evaluateCompare(left: unknown, expr: CompareExpr): boolean {
   if (expr.operator === 'includes') {
     if (typeof leftNorm === 'string') {
       // 包含：左值包含右值数组中的任意一个
-      return rightValues.some((rv) => leftNorm.includes(String(normalizeScalar(rv) ?? '')));
+      return rightValues.some((rv) => leftNorm.includes(String((normalizeScalar(rv) ?? '') as string)));
     }
     if (Array.isArray(left)) {
       const leftNormArray = left.map((item) => normalizeScalar(item));
@@ -80,7 +80,7 @@ function evaluateCompare(left: unknown, expr: CompareExpr): boolean {
   if (expr.operator === 'notincludes') {
     if (typeof leftNorm === 'string') {
       // 不包含：左值不包含右值数组中的任意一个
-      return rightValues.every((rv) => !leftNorm.includes(String(normalizeScalar(rv) ?? '')));
+      return rightValues.every((rv) => !leftNorm.includes(String((normalizeScalar(rv) ?? '') as string)));
     }
     if (Array.isArray(left)) {
       const leftNormArray = left.map((item) => normalizeScalar(item));
@@ -93,7 +93,7 @@ function evaluateCompare(left: unknown, expr: CompareExpr): boolean {
     if (typeof leftNorm !== 'string') return false;
     try {
       // 正则匹配：使用第一个值作为正则表达式
-      return new RegExp(String(normalizeScalar(rightValues[0]) ?? '')).test(leftNorm);
+      return new RegExp(String((normalizeScalar(rightValues[0]) ?? '') as string)).test(leftNorm);
     } catch {
       return false;
     }
@@ -143,6 +143,7 @@ export function evaluateRule(
   targetVars: Record<string, unknown>
 ): EvalResult {
   if (!rule.enabled) return 'pass';
+  if (rule.localeOnly) return 'pass';
 
   const conditionMatched = evaluateExpr(rule.condition, vars);
   if (!conditionMatched) return 'pass'; // 条件不满足 → 规则不适用

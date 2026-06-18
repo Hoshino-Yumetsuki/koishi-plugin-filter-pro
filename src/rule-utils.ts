@@ -28,7 +28,8 @@ export function cloneRule(rule: RuleItem): RuleItem {
     target: { ...rule.target },
     condition: cloneExpr(rule.condition),
     response: rule.response,
-    locale: rule.locale
+    locale: rule.locale,
+    localeOnly: rule.localeOnly || false
   };
 }
 
@@ -127,7 +128,8 @@ export function normalizeRule(input: RuleInput): RuleItem {
     target,
     condition: normalizeExpr(input.condition),
     response: input.response ?? '',
-    locale: input.locale || ''
+    locale: input.locale || '',
+    localeOnly: input.localeOnly ?? false
   };
 }
 
@@ -143,7 +145,7 @@ export function matchTarget(target: RuleTarget, vars: Record<string, unknown>): 
       return target.value.length > 0 && target.value.includes(pluginKey);
     }
     const value = typeof target.value === 'string' ? target.value.trim() : '';
-    return value && pluginKey === value;
+    return value !== '' && pluginKey === value;
   }
 
   // 指令目标匹配
@@ -155,7 +157,7 @@ export function matchTarget(target: RuleTarget, vars: Record<string, unknown>): 
       return target.value.length > 0 && target.value.includes(commandName);
     }
     const value = typeof target.value === 'string' ? target.value.trim() : '';
-    return value && commandName === value;
+    return value !== '' && commandName === value;
   }
 
   return false;

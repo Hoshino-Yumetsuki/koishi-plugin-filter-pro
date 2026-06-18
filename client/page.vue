@@ -25,7 +25,9 @@
               <div class="meta">
                 <span>#{{ rule.priority }}</span>
                 <span>{{ getTargetDisplay(rule.target) }}</span>
+                <span>{{ modeLabel[rule.mode] || '黑名单' }}</span>
                 <span v-if="rule.locale">{{ rule.locale }}</span>
+                <span v-if="rule.localeOnly" class="locale-only-tag">仅语言</span>
                 <span>{{ rule.enabled ? '启用' : '停用' }}</span>
               </div>
             </button>
@@ -105,12 +107,28 @@
               </label>
 
               <label class="field">
+                <span>模式</span>
+                <FpSelect v-model="currentRule.mode" :options="modeOptions" />
+              </label>
+
+              <label class="field">
                 <span>响应语言</span>
                 <input
                   class="input"
                   v-model="currentRule.locale"
                   placeholder="如 zh-CN, en-US, ja-JP（留空不设置）"
                 />
+              </label>
+
+              <label class="field switch" v-if="currentRule.locale">
+                <span>仅设置语言</span>
+                <div
+                  class="toggle-switch"
+                  :class="{ active: currentRule.localeOnly }"
+                  @click="currentRule.localeOnly = !currentRule.localeOnly"
+                >
+                  <div class="toggle-thumb" />
+                </div>
               </label>
 
               <label class="field">
@@ -177,8 +195,21 @@ import PluginSelector from './components/plugin-selector.vue';
 const request = send as any;
 
 type RuleAction = 'bypass' | 'block';
+type RuleMode = 'blacklist' | 'whitelist';
 type GroupOperator = 'and' | 'or';
-type CompareOperator = 'eq' | 'ne' | 'includes' | 'regex' | 'gt' | 'gte' | 'lt' | 'lte' | 'exists';
+type CompareOperator =
+  | 'eq'
+  | 'ne'
+  | 'in'
+  | 'nin'
+  | 'includes'
+  | 'notincludes'
+  | 'regex'
+  | 'gt'
+  | 'gte'
+  | 'lt'
+  | 'lte'
+  | 'exists';
 type TargetType = 'global' | 'plugin' | 'command';
 
 type RuleExpr =
@@ -197,6 +228,7 @@ interface RuleItem {
   enabled: boolean;
   priority: number;
   action: RuleAction;
+  mode: RuleMode;
   target: {
     type: TargetType;
     value?: string | string[];
@@ -204,6 +236,7 @@ interface RuleItem {
   condition: RuleExpr;
   response?: string;
   locale?: string;
+  localeOnly?: boolean;
 }
 
 interface PluginTargetOption {
@@ -223,6 +256,11 @@ const actionLabel: Record<RuleAction, string> = {
   block: '拦截'
 };
 
+const modeLabel: Record<RuleMode, string> = {
+  blacklist: '黑名单',
+  whitelist: '白名单'
+};
+
 const targetTypeOptions = [
   { label: '全局', value: 'global' },
   { label: '插件', value: 'plugin' },
@@ -232,6 +270,11 @@ const targetTypeOptions = [
 const actionOptions = [
   { label: '放行（bypass）', value: 'bypass' },
   { label: '拦截（block）', value: 'block' }
+];
+
+const modeOptions = [
+  { label: '黑名单', value: 'blacklist' },
+  { label: '白名单', value: 'whitelist' }
 ];
 
 const pluginTargetOptions = computed(() => [
@@ -307,10 +350,12 @@ async function createRule() {
     enabled: true,
     priority: (sortedRules.value.at(-1)?.priority ?? -1) + 1,
     action: 'block',
+    mode: 'blacklist',
     target: { type: 'global', value: '' },
     condition: defaultExpr(),
     response: '',
-    locale: ''
+    locale: '',
+    localeOnly: false
   });
   await refresh();
   selectedId.value = sortedRules.value.at(-1)?.id || selectedId.value;
@@ -352,10 +397,12 @@ async function saveRule(rule: RuleItem) {
     enabled: rule.enabled,
     priority: rule.priority,
     action: rule.action,
+    mode: rule.mode || 'blacklist',
     target,
     condition: rule.condition,
     response: rule.response || '',
-    locale: rule.locale || ''
+    locale: rule.locale || '',
+    localeOnly: rule.localeOnly || false
   });
   await refresh();
   message.success('保存成功');
@@ -522,6 +569,11 @@ void refresh();
 
 .badge.block {
   background: color-mix(in srgb, #e74c3c 20%, transparent);
+}
+
+.locale-only-tag {
+  color: #3498db;
+  font-weight: 600;
 }
 
 .editor-grid {

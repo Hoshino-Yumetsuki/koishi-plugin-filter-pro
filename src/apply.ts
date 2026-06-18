@@ -216,7 +216,7 @@ export function apply(ctx: Context, config: Config = {}) {
     });
 
     const { result, rule } = evaluateAllRules(
-      state.rules.filter(r => r.target.type === 'global'),
+      state.rules.filter((r) => r.target.type === 'global'),
       vars,
       vars
     );
@@ -300,7 +300,7 @@ export function apply(ctx: Context, config: Config = {}) {
     const refresh = async () => {
       await persist(state.rules);
       await applyNativeFilterInjection();
-      provider.refresh();
+      void provider.refresh();
     };
 
     addListener(

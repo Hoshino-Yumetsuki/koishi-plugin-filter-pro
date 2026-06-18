@@ -4,8 +4,8 @@ import type { FilterFn, RuleItem, RuleState } from './types';
 export function buildVars(session: any, extras: Record<string, unknown> = {}) {
   // 从 session.event.argv 提取斜杠命令名（Discord/Telegram 等平台的 interaction/command）
   // session.content 对斜杠命令为空字符串，但 event.argv.name 包含实际的命令名
-  const argv = session.event?.argv
-  const argvCommandName = argv?.name ? String(argv.name) : ''
+  const argv = session.event?.argv;
+  const argvCommandName = argv?.name ? String(argv.name) : '';
 
   return {
     platform: String(session.platform ?? ''),
@@ -32,7 +32,7 @@ export function evaluatePluginRules(
 ): boolean {
   const vars = buildVars(session, { pluginKey });
   // 仅评估 plugin 类型规则（global/command 类型由各自的 hook 处理）
-  const pluginRules = state.rules.filter(r => r.target.type === 'plugin');
+  const pluginRules = state.rules.filter((r) => r.target.type === 'plugin');
   const { result, rule } = evaluateAllRules(pluginRules, vars, vars);
 
   trace?.('native-filter:evaluate', {

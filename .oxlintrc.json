@@ -14,5 +14,8 @@
     "coverage",
     "playwright-report",
     "test/fixtures"
-  ]
+  ],
+  "options": {
+    "typeAware": true
+  }
 }

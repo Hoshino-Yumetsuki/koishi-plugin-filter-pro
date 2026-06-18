@@ -10,13 +10,10 @@ import type { RuleState } from './types';
  * 使用统一的 evaluateAllRules，遵循"先匹配先赢"的优先级语义。
  * 仅评估 command 类型的规则（plugin 规则由 command.match() 处理）。
  */
-function createHiddenComputed(
-  commandName: string,
-  state: RuleState
-): (session: any) => boolean {
+function createHiddenComputed(commandName: string, state: RuleState): (session: any) => boolean {
   return (session: any) => {
     const vars = buildVars(session, { commandName });
-    const cmdRules = state.rules.filter(r => r.target.type === 'command');
+    const cmdRules = state.rules.filter((r) => r.target.type === 'command');
     const { result } = evaluateAllRules(cmdRules, vars, vars);
     return result === 'block';
   };
