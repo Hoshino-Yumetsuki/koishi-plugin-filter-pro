@@ -71,14 +71,6 @@ export function createPluginResolver(
     const direct = byScope.get(scope);
     if (direct) return direct;
 
-    // 遍历 scope 父链：子上下文的 scope 可能与 fork.ctx.scope 不同
-    let cursor = scope?.parent;
-    while (cursor) {
-      const found = byScope.get(cursor);
-      if (found) return found;
-      cursor = cursor.parent;
-    }
-
     const loader = (ctx as any).loader;
     if (loader?.paths) {
       const paths = loader.paths(scope) as string[];
@@ -144,8 +136,8 @@ export function createPluginResolver(
       return resolved;
     }
 
-    // 回溯父命令链：子命令可能注册在不同的上下文中
-    let parent = command?.parent;
+    // 回溯父命令链：通过 _parent 绕过 Cordis proxy
+    let parent = command?._parent;
     while (parent) {
       const parentResolved = resolveByScope(parent?.caller?.scope);
       if (parentResolved) {
@@ -157,13 +149,13 @@ export function createPluginResolver(
         });
         return parentResolved;
       }
-      parent = parent.parent;
+      parent = parent._parent;
     }
 
     trace?.('resolver:resolve:miss', {
       command: commandName
     });
-    return resolved;
+    return undefined;
   };
 
   const bindCommand = (command: any) => {
