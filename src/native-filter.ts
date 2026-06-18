@@ -39,8 +39,8 @@ export function evaluatePluginRules(
     pluginKey,
     ruleId: rule?.id,
     ruleName: rule?.name,
-    action: rule?.action,
-    matched: result === 'allow'
+    mode: rule?.mode,
+    result,
   });
 
   return result === 'allow';

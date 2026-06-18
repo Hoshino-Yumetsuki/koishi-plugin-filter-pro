@@ -71,6 +71,14 @@ export function createPluginResolver(
     const direct = byScope.get(scope);
     if (direct) return direct;
 
+    // 遍历 scope 父链：子上下文的 scope 可能与 fork.ctx.scope 不同
+    let cursor = scope?.parent;
+    while (cursor) {
+      const found = byScope.get(cursor);
+      if (found) return found;
+      cursor = cursor.parent;
+    }
+
     const loader = (ctx as any).loader;
     if (loader?.paths) {
       const paths = loader.paths(scope) as string[];
@@ -133,11 +141,28 @@ export function createPluginResolver(
         pluginKey: resolved.key,
         pluginName: resolved.name
       });
-    } else {
-      trace?.('resolver:resolve:miss', {
-        command: commandName
-      });
+      return resolved;
     }
+
+    // 回溯父命令链：子命令可能注册在不同的上下文中
+    let parent = command?.parent;
+    while (parent) {
+      const parentResolved = resolveByScope(parent?.caller?.scope);
+      if (parentResolved) {
+        byCommand.set(command, parentResolved);
+        trace?.('resolver:resolve:parent', {
+          command: commandName,
+          parentCommand: String(parent?.name ?? ''),
+          pluginKey: parentResolved.key
+        });
+        return parentResolved;
+      }
+      parent = parent.parent;
+    }
+
+    trace?.('resolver:resolve:miss', {
+      command: commandName
+    });
     return resolved;
   };
 
