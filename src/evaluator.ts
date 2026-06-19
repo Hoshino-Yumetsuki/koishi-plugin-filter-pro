@@ -68,7 +68,9 @@ function evaluateCompare(left: unknown, expr: CompareExpr): boolean {
   if (expr.operator === 'includes') {
     if (typeof leftNorm === 'string') {
       // 包含：左值包含右值数组中的任意一个
-      return rightValues.some((rv) => leftNorm.includes(String((normalizeScalar(rv) ?? '') as string)));
+      return rightValues.some((rv) =>
+        leftNorm.includes(String((normalizeScalar(rv) ?? '') as string))
+      );
     }
     if (Array.isArray(left)) {
       const leftNormArray = left.map((item) => normalizeScalar(item));
@@ -80,7 +82,9 @@ function evaluateCompare(left: unknown, expr: CompareExpr): boolean {
   if (expr.operator === 'notincludes') {
     if (typeof leftNorm === 'string') {
       // 不包含：左值不包含右值数组中的任意一个
-      return rightValues.every((rv) => !leftNorm.includes(String((normalizeScalar(rv) ?? '') as string)));
+      return rightValues.every(
+        (rv) => !leftNorm.includes(String((normalizeScalar(rv) ?? '') as string))
+      );
     }
     if (Array.isArray(left)) {
       const leftNormArray = left.map((item) => normalizeScalar(item));

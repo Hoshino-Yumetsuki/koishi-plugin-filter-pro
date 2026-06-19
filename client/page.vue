@@ -316,9 +316,7 @@ function getTargetDisplay(target: { type: TargetType; value?: string | string[] 
 // 监听目标类型变化，清空已选值（仅限同一规则内的类型切换，不响应规则切换）
 watch(
   () =>
-    currentRule.value
-      ? { id: currentRule.value.id, type: currentRule.value.target.type }
-      : null,
+    currentRule.value ? { id: currentRule.value.id, type: currentRule.value.target.type } : null,
   (newVal, oldVal) => {
     if (
       newVal &&

@@ -40,7 +40,7 @@ export function evaluatePluginRules(
     ruleId: rule?.id,
     ruleName: rule?.name,
     mode: rule?.mode,
-    result,
+    result
   });
 
   return result === 'allow';

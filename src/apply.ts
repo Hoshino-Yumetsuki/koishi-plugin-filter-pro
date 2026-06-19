@@ -118,9 +118,10 @@ export function apply(ctx: Context, config: Config = {}) {
     });
 
     // 同步命令 visibility 标记：根据当前规则更新 hidden Computed 和 slash 标志
+    // 传入 resolver 以支持 plugin 类型无条件规则的注册级阻止
     const allCommands = (ctx as any)?.$commander?._commandList;
     if (Array.isArray(allCommands)) {
-      visibility.apply(allCommands, state);
+      visibility.apply(allCommands, state, pluginResolver.resolveByCommand);
     }
   };
 
@@ -195,7 +196,7 @@ export function apply(ctx: Context, config: Config = {}) {
     pluginResolver.bindCommand(command);
     // 对新命令应用 visibility 标记（hidden Computed + slash 标志）
     // hidden Computed 延迟评估，所以即使 state.rules 尚未加载也可以安全设置
-    visibility.apply([command], state);
+    visibility.apply([command], state, pluginResolver.resolveByCommand);
     trace('command:added', {
       command: String((command as any)?.name ?? '')
     });
@@ -283,6 +284,30 @@ export function apply(ctx: Context, config: Config = {}) {
 
     if (rule?.response) {
       await argv.session?.send(rule.response);
+    } else if (isInteraction) {
+      // 斜杠命令被拦截时，必须回复以清除 deferred response（避免"正在思考…"超时挂起）
+      // 尝试删除占位符；失败时使用 Koishi 原生权限不足消息（自带 i18n）
+      const session = argv.session;
+      if (session) {
+        try {
+          const discord =
+            session.event && session.event._data && session.event._data.discord;
+          const token = discord && discord.d && discord.d.token;
+          if (token) {
+            await (session.bot as any).http.delete(
+              `/webhooks/${session.bot.selfId}/${token}/messages/@original`
+            );
+          } else {
+            await session.send(session.text('internal.low-authority'));
+          }
+        } catch {
+          try {
+            await session.send(session.text('internal.low-authority'));
+          } catch {
+            /* best effort */
+          }
+        }
+      }
     }
     return '';
   });

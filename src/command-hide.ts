@@ -1,7 +1,7 @@
 import { buildVars } from './native-filter';
 import { evaluateAllRules } from './evaluator';
 import { sortRules } from './rule-utils';
-import type { RuleState } from './types';
+import type { RuleExpr, RuleState, PluginTargetOption } from './types';
 
 /**
  * 创建一个 Computed\<boolean\> 用于 command.config.hidden，
@@ -17,6 +17,14 @@ function createHiddenComputed(commandName: string, state: RuleState): (session: 
     const { result } = evaluateAllRules(cmdRules, vars, vars);
     return result === 'block';
   };
+}
+
+/**
+ * 检查条件表达式是否为空（无条件规则）。
+ * 无条件规则可在注册时安全评估（无 session 上下文）。
+ */
+function isUnconditional(condition: RuleExpr): boolean {
+  return condition.type === 'group' && condition.children.length === 0;
 }
 
 /**
@@ -58,6 +66,43 @@ function shouldHideFromPlatform(commandName: string, state: RuleState): boolean 
 }
 
 /**
+ * 检查命令是否因其所属插件被无条件阻止而应从斜杠注册中排除。
+ *
+ * 仅评估无条件（无 session 上下文）的 plugin 类型规则。
+ * 有条件的 plugin 规则只能在运行时拦截（before command/execute）。
+ */
+function shouldHideByPlugin(pluginKey: string | undefined, state: RuleState): boolean {
+  if (!pluginKey) return false;
+
+  for (const rule of sortRules(state.rules)) {
+    if (!rule.enabled) continue;
+    if (rule.target.type !== 'plugin') continue;
+    if (rule.localeOnly) continue;
+    if (!isUnconditional(rule.condition)) continue;
+
+    const targetMatches = Array.isArray(rule.target.value)
+      ? rule.target.value.includes(pluginKey)
+      : typeof rule.target.value === 'string'
+        ? rule.target.value.trim() === pluginKey
+        : false;
+
+    if (rule.mode === 'whitelist') {
+      if (rule.action === 'bypass') {
+        if (targetMatches) return false;
+        continue;
+      }
+      if (!targetMatches) return true;
+      return false;
+    }
+
+    // 黑名单模式
+    if (!targetMatches) continue;
+    return rule.action === 'block';
+  }
+  return false;
+}
+
+/**
  * 创建一个命令 visibility 管理器。
  * 每个 apply() 调用创建独立的实例，避免模块级状态在热重载时泄漏。
  */
@@ -67,8 +112,15 @@ export function createCommandVisibilityManager() {
   /**
    * 根据当前 filter-pro 规则，对所有命令应用 visibility 标记（hidden、slash）。
    * 首次调用时保存原始 hidden 和 slash 值，以便在规则移除时可以恢复。
+   *
+   * resolveCommand 可选：传入时额外检查 plugin 类型无条件规则，
+   * 对被阻止插件的命令也设置 slash=false。
    */
-  function apply(commands: any[], state: RuleState): void {
+  function apply(
+    commands: any[],
+    state: RuleState,
+    resolveCommand?: (command: any) => PluginTargetOption | undefined
+  ): void {
     for (const command of commands) {
       const name = String(command?.name ?? '').trim();
       if (!name) continue;
@@ -83,8 +135,12 @@ export function createCommandVisibilityManager() {
       // 设置 hidden Computed
       command.config.hidden = createHiddenComputed(name, state);
 
-      // 设置 slash 标志
-      if (shouldHideFromPlatform(name, state)) {
+      // 设置 slash 标志：command 类型规则 或 plugin 类型无条件规则均可隐藏
+      const resolved = resolveCommand && resolveCommand(command);
+      if (
+        shouldHideFromPlatform(name, state) ||
+        shouldHideByPlugin(resolved && resolved.key, state)
+      ) {
         command.config.slash = false;
       } else {
         // 如果规则不再拦截，恢复原始 slash 值
