@@ -286,25 +286,30 @@ export function apply(ctx: Context, config: Config = {}) {
       await argv.session?.send(rule.response);
     } else if (isInteraction) {
       // 斜杠命令被拦截时，必须回复以清除 deferred response（避免"正在思考…"超时挂起）
-      // 尝试删除占位符；失败时使用 Koishi 原生权限不足消息（自带 i18n）
+      // 尝试删除占位符；失败时 PATCH 编辑 deferred response 为权限不足消息
+      // session.event._data 就是 gateway payload（setInternal 直接存储）
+      // 使用 application_id 而非 selfId（老 bot/团队 bot 两者可能不同）
       const session = argv.session;
       if (session) {
-        try {
-          const discord =
-            session.event && session.event._data && session.event._data.discord;
-          const token = discord && discord.d && discord.d.token;
-          if (token) {
-            await (session.bot as any).http.delete(
-              `/webhooks/${session.bot.selfId}/${token}/messages/@original`
-            );
-          } else {
-            await session.send(session.text('internal.low-authority'));
-          }
-        } catch {
+        const payload = session.event && session.event._data;
+        const appId = payload && payload.d && payload.d.application_id;
+        const interactionToken = payload && payload.d && payload.d.token;
+        const denyMessage = session.text('internal.low-authority');
+        if (appId && interactionToken) {
           try {
-            await session.send(session.text('internal.low-authority'));
+            await (session.bot as any).http.delete(
+              `/webhooks/${appId}/${interactionToken}/messages/@original`
+            );
           } catch {
-            /* best effort */
+            // 删除失败时编辑 deferred response（PATCH，非 followup）
+            try {
+              await (session.bot as any).http.patch(
+                `/webhooks/${appId}/${interactionToken}/messages/@original`,
+                { content: denyMessage }
+              );
+            } catch {
+              /* best effort */
+            }
           }
         }
       }
