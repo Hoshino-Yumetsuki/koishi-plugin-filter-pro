@@ -19,16 +19,16 @@
               @click="selectedId = rule.id"
             >
               <div class="top">
-                <span class="name">{{ rule.name || '未命名规则' }}</span>
+                <span class="name">{{ rule.name || "未命名规则" }}</span>
                 <span class="badge" :class="rule.action">{{ actionLabel[rule.action] }}</span>
               </div>
               <div class="meta">
                 <span>#{{ rule.priority }}</span>
                 <span>{{ getTargetDisplay(rule.target) }}</span>
-                <span>{{ modeLabel[rule.mode] || '黑名单' }}</span>
+                <span>{{ modeLabel[rule.mode] || "黑名单" }}</span>
                 <span v-if="rule.locale">{{ rule.locale }}</span>
                 <span v-if="rule.localeOnly" class="locale-only-tag">仅语言</span>
-                <span>{{ rule.enabled ? '启用' : '停用' }}</span>
+                <span>{{ rule.enabled ? "启用" : "停用" }}</span>
               </div>
             </button>
           </div>
@@ -188,37 +188,37 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-import { send, message } from '@koishijs/client';
-import FpSelect from './components/fp-select.vue';
-import ExprEditor from './components/expr-editor.vue';
-import PluginSelector from './components/plugin-selector.vue';
+import { computed, ref, watch } from "vue";
+import { send, message } from "@koishijs/client";
+import FpSelect from "./components/fp-select.vue";
+import ExprEditor from "./components/expr-editor.vue";
+import PluginSelector from "./components/plugin-selector.vue";
 
 const request = send as any;
 
-type RuleAction = 'bypass' | 'block';
-type RuleMode = 'blacklist' | 'whitelist';
-type GroupOperator = 'and' | 'or';
+type RuleAction = "bypass" | "block";
+type RuleMode = "blacklist" | "whitelist";
+type GroupOperator = "and" | "or";
 type CompareOperator =
-  | 'eq'
-  | 'ne'
-  | 'in'
-  | 'nin'
-  | 'includes'
-  | 'notincludes'
-  | 'regex'
-  | 'gt'
-  | 'gte'
-  | 'lt'
-  | 'lte'
-  | 'exists';
-type TargetType = 'global' | 'plugin' | 'command';
+  | "eq"
+  | "ne"
+  | "in"
+  | "nin"
+  | "includes"
+  | "notincludes"
+  | "regex"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "exists";
+type TargetType = "global" | "plugin" | "command";
 
 type RuleExpr =
-  | { type: 'group'; operator: GroupOperator; children: RuleExpr[] }
-  | { type: 'not'; child: RuleExpr }
+  | { type: "group"; operator: GroupOperator; children: RuleExpr[] }
+  | { type: "not"; child: RuleExpr }
   | {
-      type: 'compare';
+      type: "compare";
       field: string;
       operator: CompareOperator;
       value?: unknown;
@@ -254,40 +254,40 @@ interface CommandOption {
 }
 
 const actionLabel: Record<RuleAction, string> = {
-  bypass: '放行',
-  block: '拦截'
+  bypass: "放行",
+  block: "拦截"
 };
 
 const modeLabel: Record<RuleMode, string> = {
-  blacklist: '黑名单',
-  whitelist: '白名单'
+  blacklist: "黑名单",
+  whitelist: "白名单"
 };
 
 const targetTypeOptions = [
-  { label: '全局', value: 'global' },
-  { label: '插件', value: 'plugin' },
-  { label: '指令', value: 'command' }
+  { label: "全局", value: "global" },
+  { label: "插件", value: "plugin" },
+  { label: "指令", value: "command" }
 ];
 
 const actionOptions = [
-  { label: '放行（bypass）', value: 'bypass' },
-  { label: '拦截（block）', value: 'block' }
+  { label: "放行（bypass）", value: "bypass" },
+  { label: "拦截（block）", value: "block" }
 ];
 
 const modeOptions = [
-  { label: '黑名单', value: 'blacklist' },
-  { label: '白名单', value: 'whitelist' }
+  { label: "黑名单", value: "blacklist" },
+  { label: "白名单", value: "whitelist" }
 ];
 
 const pluginTargetOptions = computed(() => [
-  { label: '请选择插件实例', value: '' },
+  { label: "请选择插件实例", value: "" },
   ...pluginTargets.value.map((item) => ({ label: item.label, value: item.key }))
 ]);
 
 const rules = ref<RuleItem[]>([]);
 const pluginTargets = ref<PluginTargetOption[]>([]);
 const commandList = ref<CommandOption[]>([]);
-const selectedId = ref('');
+const selectedId = ref("");
 const showDeleteConfirm = ref(false);
 
 const sortedRules = computed(() =>
@@ -297,20 +297,20 @@ const currentRule = computed(() => sortedRules.value.find((item) => item.id === 
 
 // 获取目标显示文本
 function getTargetDisplay(target: { type: TargetType; value?: string | string[] }): string {
-  if (target.type === 'global') return '全局';
-  if (target.type === 'plugin') {
+  if (target.type === "global") return "全局";
+  if (target.type === "plugin") {
     if (Array.isArray(target.value)) {
-      return target.value.length > 0 ? `插件 (${target.value.length})` : '未指定插件';
+      return target.value.length > 0 ? `插件 (${target.value.length})` : "未指定插件";
     }
-    return target.value || '未指定插件';
+    return target.value || "未指定插件";
   }
-  if (target.type === 'command') {
+  if (target.type === "command") {
     if (Array.isArray(target.value)) {
-      return target.value.length > 0 ? `指令 (${target.value.length})` : '未指定指令';
+      return target.value.length > 0 ? `指令 (${target.value.length})` : "未指定指令";
     }
-    return target.value || '未指定指令';
+    return target.value || "未指定指令";
   }
-  return '未知';
+  return "未知";
 }
 
 // 监听目标类型变化，清空已选值（仅限同一规则内的类型切换，不响应规则切换）
@@ -325,50 +325,50 @@ watch(
       newVal.type !== oldVal.type &&
       currentRule.value
     ) {
-      currentRule.value.target.value = newVal.type === 'global' ? '' : [];
+      currentRule.value.target.value = newVal.type === "global" ? "" : [];
     }
   }
 );
 
 function defaultExpr(): RuleExpr {
   return {
-    type: 'group',
-    operator: 'and',
-    children: [{ type: 'compare', field: 'guildId', operator: 'eq', value: '' }]
+    type: "group",
+    operator: "and",
+    children: [{ type: "compare", field: "guildId", operator: "eq", value: "" }]
   };
 }
 
 async function refresh() {
   const [data, targets, commands] = await Promise.all([
-    request('filter-pro/list') as Promise<RuleItem[]>,
-    request('filter-pro/targets') as Promise<PluginTargetOption[]>,
-    request('filter-pro/commands') as Promise<CommandOption[]>
+    request("filter-pro/list") as Promise<RuleItem[]>,
+    request("filter-pro/targets") as Promise<PluginTargetOption[]>,
+    request("filter-pro/commands") as Promise<CommandOption[]>
   ]);
   pluginTargets.value = targets;
   commandList.value = commands;
   rules.value = data;
   if (!selectedId.value || !rules.value.some((item) => item.id === selectedId.value)) {
-    selectedId.value = sortedRules.value[0]?.id || '';
+    selectedId.value = sortedRules.value[0]?.id || "";
   }
-  message.success('刷新成功');
+  message.success("刷新成功");
 }
 
 async function createRule() {
-  await request('filter-pro/create', {
-    name: 'new-rule',
+  await request("filter-pro/create", {
+    name: "new-rule",
     enabled: true,
     priority: (sortedRules.value.at(-1)?.priority ?? -1) + 1,
-    action: 'block',
-    mode: 'blacklist',
-    target: { type: 'global', value: '' },
+    action: "block",
+    mode: "blacklist",
+    target: { type: "global", value: "" },
     condition: defaultExpr(),
-    response: '',
-    locale: '',
+    response: "",
+    locale: "",
     localeOnly: false
   });
   await refresh();
   selectedId.value = sortedRules.value.at(-1)?.id || selectedId.value;
-  message.success('创建成功');
+  message.success("创建成功");
 }
 
 function validatePriority(e: Event) {
@@ -384,37 +384,37 @@ function validatePriority(e: Event) {
 
 async function onToggle(rule: RuleItem) {
   rule.enabled = !rule.enabled;
-  await request('filter-pro/toggle', { id: rule.id, enabled: rule.enabled });
+  await request("filter-pro/toggle", { id: rule.id, enabled: rule.enabled });
 }
 
 async function saveRule(rule: RuleItem) {
   let target: { type: TargetType; value?: string | string[] };
 
-  if (rule.target.type === 'global') {
-    target = { type: 'global', value: '' };
-  } else if (rule.target.type === 'plugin') {
+  if (rule.target.type === "global") {
+    target = { type: "global", value: "" };
+  } else if (rule.target.type === "plugin") {
     // 插件多选：保存为数组
-    target = { type: 'plugin', value: rule.target.value || [] };
+    target = { type: "plugin", value: rule.target.value || [] };
   } else {
     // 指令多选：保存为数组
-    target = { type: 'command', value: rule.target.value || [] };
+    target = { type: "command", value: rule.target.value || [] };
   }
 
-  await request('filter-pro/update', {
+  await request("filter-pro/update", {
     id: rule.id,
     name: rule.name,
     enabled: rule.enabled,
     priority: rule.priority,
     action: rule.action,
-    mode: rule.mode || 'blacklist',
+    mode: rule.mode || "blacklist",
     target,
     condition: rule.condition,
-    response: rule.response || '',
-    locale: rule.locale || '',
+    response: rule.response || "",
+    locale: rule.locale || "",
     localeOnly: rule.localeOnly || false
   });
   await refresh();
-  message.success('保存成功');
+  message.success("保存成功");
 }
 
 async function confirmRemove() {
@@ -429,9 +429,9 @@ async function doRemove() {
 }
 
 async function removeRule(id: string) {
-  await request('filter-pro/delete', id);
+  await request("filter-pro/delete", id);
   await refresh();
-  message.success('删除成功');
+  message.success("删除成功");
 }
 
 async function move(id: string, offset: number) {
@@ -443,7 +443,7 @@ async function move(id: string, offset: number) {
   const reordered = [...list];
   [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
   await request(
-    'filter-pro/reorder',
+    "filter-pro/reorder",
     reordered.map((item) => item.id)
   );
   await refresh();

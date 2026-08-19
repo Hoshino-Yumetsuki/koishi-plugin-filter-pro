@@ -1,7 +1,7 @@
-import { buildVars } from './native-filter';
-import { evaluateAllRules } from './evaluator';
-import { sortRules } from './rule-utils';
-import type { RuleExpr, RuleState, PluginTargetOption } from './types';
+import { buildVars } from "./native-filter";
+import { evaluateAllRules } from "./evaluator";
+import { sortRules } from "./rule-utils";
+import type { RuleExpr, RuleState, PluginTargetOption } from "./types";
 
 /**
  * 创建一个 Computed\<boolean\> 用于 command.config.hidden，
@@ -13,9 +13,9 @@ import type { RuleExpr, RuleState, PluginTargetOption } from './types';
 function createHiddenComputed(commandName: string, state: RuleState): (session: any) => boolean {
   return (session: any) => {
     const vars = buildVars(session, { commandName });
-    const cmdRules = state.rules.filter((r) => r.target.type === 'command');
+    const cmdRules = state.rules.filter((r) => r.target.type === "command");
     const { result } = evaluateAllRules(cmdRules, vars, vars);
-    return result === 'block';
+    return result === "block";
   };
 }
 
@@ -24,7 +24,7 @@ function createHiddenComputed(commandName: string, state: RuleState): (session: 
  * 无条件规则可在注册时安全评估（无 session 上下文）。
  */
 function isUnconditional(condition: RuleExpr): boolean {
-  return condition.type === 'group' && condition.children.length === 0;
+  return condition.type === "group" && condition.children.length === 0;
 }
 
 /**
@@ -41,16 +41,16 @@ function isUnconditional(condition: RuleExpr): boolean {
 function shouldHideFromPlatform(commandName: string, state: RuleState): boolean {
   for (const rule of sortRules(state.rules)) {
     if (!rule.enabled) continue;
-    if (rule.target.type !== 'command') continue;
+    if (rule.target.type !== "command") continue;
 
     const targetMatches = Array.isArray(rule.target.value)
       ? rule.target.value.includes(commandName)
-      : typeof rule.target.value === 'string'
+      : typeof rule.target.value === "string"
         ? rule.target.value.trim() === commandName
         : false;
 
-    if (rule.mode === 'whitelist') {
-      if (rule.action === 'bypass') {
+    if (rule.mode === "whitelist") {
+      if (rule.action === "bypass") {
         if (targetMatches) return false;
         continue;
       }
@@ -60,7 +60,7 @@ function shouldHideFromPlatform(commandName: string, state: RuleState): boolean 
 
     // 黑名单模式
     if (!targetMatches) continue;
-    return rule.action === 'block';
+    return rule.action === "block";
   }
   return false;
 }
@@ -76,18 +76,18 @@ function shouldHideByPlugin(pluginKey: string | undefined, state: RuleState): bo
 
   for (const rule of sortRules(state.rules)) {
     if (!rule.enabled) continue;
-    if (rule.target.type !== 'plugin') continue;
+    if (rule.target.type !== "plugin") continue;
     if (rule.localeOnly) continue;
     if (!isUnconditional(rule.condition)) continue;
 
     const targetMatches = Array.isArray(rule.target.value)
       ? rule.target.value.includes(pluginKey)
-      : typeof rule.target.value === 'string'
+      : typeof rule.target.value === "string"
         ? rule.target.value.trim() === pluginKey
         : false;
 
-    if (rule.mode === 'whitelist') {
-      if (rule.action === 'bypass') {
+    if (rule.mode === "whitelist") {
+      if (rule.action === "bypass") {
         if (targetMatches) return false;
         continue;
       }
@@ -97,7 +97,7 @@ function shouldHideByPlugin(pluginKey: string | undefined, state: RuleState): bo
 
     // 黑名单模式
     if (!targetMatches) continue;
-    return rule.action === 'block';
+    return rule.action === "block";
   }
   return false;
 }
@@ -122,7 +122,7 @@ export function createCommandVisibilityManager() {
     resolveCommand?: (command: any) => PluginTargetOption | undefined
   ): void {
     for (const command of commands) {
-      const name = String(command?.name ?? '').trim();
+      const name = String(command?.name ?? "").trim();
       if (!name) continue;
 
       // 保存原始值（仅在首次时）

@@ -1,35 +1,35 @@
-import { resolve, join } from 'node:path';
-import { mkdir } from 'node:fs/promises';
+import { resolve, join } from "node:path";
+import { mkdir } from "node:fs/promises";
 
-import type { Context } from 'koishi';
+import type { Context } from "koishi";
 
-import { evaluateExpr, evaluateAllRules } from './evaluator';
+import { evaluateExpr, evaluateAllRules } from "./evaluator";
 import {
   buildVars,
   collectActivePluginKeys,
   evaluatePluginRules,
   restoreInjectedFilters
-} from './native-filter';
-import { createPersister, readRules } from './persistence';
-import { FilterProProvider } from './provider';
-import { cloneRule, matchTarget, normalizeRule, sortRules } from './rule-utils';
-import { collectPluginForks, createPluginResolver } from './resolver';
-import { createCommandVisibilityManager } from './command-hide';
-import type { Config, FilterFn, PluginTargetOption, RuleInput, RuleState } from './types';
+} from "./native-filter";
+import { createPersister, readRules } from "./persistence";
+import { FilterProProvider } from "./provider";
+import { cloneRule, matchTarget, normalizeRule, sortRules } from "./rule-utils";
+import { collectPluginForks, createPluginResolver } from "./resolver";
+import { createCommandVisibilityManager } from "./command-hide";
+import type { Config, FilterFn, PluginTargetOption, RuleInput, RuleState } from "./types";
 
 export function apply(ctx: Context, config: Config = {}) {
   const baseDir = (ctx as unknown as { baseDir?: string }).baseDir || process.cwd();
-  const dataDir = join(baseDir, 'data', 'filterpro');
-  const dataFile = join(dataDir, config.filename || 'rules.json');
+  const dataDir = join(baseDir, "data", "filterpro");
+  const dataFile = join(dataDir, config.filename || "rules.json");
   const state: RuleState = { rules: [] };
   const persist = createPersister(dataFile);
-  const logger = ctx.logger('filter-pro');
+  const logger = ctx.logger("filter-pro");
 
   const trace = (stage: string, payload: Record<string, unknown>) => {
     if (!config.debug) return;
-    const isJudge = stage.includes(':evaluate') || stage === 'native-filter:evaluate';
+    const isJudge = stage.includes(":evaluate") || stage === "native-filter:evaluate";
     if (isJudge && !payload?.matched) return;
-    logger.info('[trace:%s] %s', stage, JSON.stringify(payload));
+    logger.info("[trace:%s] %s", stage, JSON.stringify(payload));
   };
 
   const pluginResolver = createPluginResolver(ctx, trace);
@@ -49,7 +49,7 @@ export function apply(ctx: Context, config: Config = {}) {
   };
 
   const ready = initialize().catch((error) => {
-    ctx.logger('filter-pro').warn('failed to initialize persistent rules: %s', String(error));
+    ctx.logger("filter-pro").warn("failed to initialize persistent rules: %s", String(error));
     state.rules = [];
   });
 
@@ -58,18 +58,18 @@ export function apply(ctx: Context, config: Config = {}) {
     pluginResolver.rebuild();
     const commands = (ctx as any)?.$commander?._commandList;
     if (Array.isArray(commands)) {
-      trace('resolver:bind-existing:start', {
+      trace("resolver:bind-existing:start", {
         commandCount: commands.length
       });
       for (const command of commands) {
         pluginResolver.bindCommand(command);
       }
-      trace('resolver:bind-existing:done', {
+      trace("resolver:bind-existing:done", {
         commandCount: commands.length
       });
     } else {
-      trace('resolver:bind-existing:skip', {
-        reason: '$commander not available'
+      trace("resolver:bind-existing:skip", {
+        reason: "$commander not available"
       });
     }
   };
@@ -83,14 +83,14 @@ export function apply(ctx: Context, config: Config = {}) {
     const forks = collectPluginForks(ctx);
     const activeKeys = collectActivePluginKeys(state.rules);
 
-    trace('native-filter:sync:start', {
+    trace("native-filter:sync:start", {
       activeTargetCount: activeKeys.size,
       discoveredForks: forks.size
     });
 
     for (const [pluginKey, fork] of forks.entries()) {
       const hostCtx = (fork as any)?.parent;
-      if (!hostCtx || typeof hostCtx.filter !== 'function') continue;
+      if (!hostCtx || typeof hostCtx.filter !== "function") continue;
 
       if (!originalFilters.has(hostCtx)) {
         originalFilters.set(hostCtx, hostCtx.filter);
@@ -113,7 +113,7 @@ export function apply(ctx: Context, config: Config = {}) {
       injectedFilters.set(hostCtx, wrapped);
     }
 
-    trace('native-filter:sync:done', {
+    trace("native-filter:sync:done", {
       activeTargetCount: activeKeys.size
     });
 
@@ -127,12 +127,12 @@ export function apply(ctx: Context, config: Config = {}) {
 
   void refreshPluginTargets();
   void applyNativeFilterInjection();
-  ctx.on('ready', applyNativeFilterInjection);
-  ctx.on('internal/fork', applyNativeFilterInjection);
-  ctx.on('internal/before-update', applyNativeFilterInjection);
-  ctx.on('internal/update', applyNativeFilterInjection);
-  ctx.on('internal/runtime', applyNativeFilterInjection);
-  ctx.on('dispose', () => {
+  ctx.on("ready", applyNativeFilterInjection);
+  ctx.on("internal/fork", applyNativeFilterInjection);
+  ctx.on("internal/before-update", applyNativeFilterInjection);
+  ctx.on("internal/update", applyNativeFilterInjection);
+  ctx.on("internal/runtime", applyNativeFilterInjection);
+  ctx.on("dispose", () => {
     restoreInjectedFilters(originalFilters, injectedFilters);
     const allCommands = (ctx as any)?.$commander?._commandList;
     if (Array.isArray(allCommands)) {
@@ -146,7 +146,7 @@ export function apply(ctx: Context, config: Config = {}) {
       if (!rule.enabled || !rule.locale) continue;
       if (!matchTarget(rule.target, vars)) continue;
       const matched = evaluateExpr(rule.condition, vars);
-      trace('locale:evaluate', {
+      trace("locale:evaluate", {
         ruleId: rule.id,
         ruleName: rule.name,
         locale: rule.locale,
@@ -159,7 +159,7 @@ export function apply(ctx: Context, config: Config = {}) {
       // 最终优先级：user > filter-pro locale > channel > guild > global
       const userLocales = (session as any).user?.locales || [];
       (session as any).locales = [...userLocales, rule.locale];
-      trace('locale:applied', {
+      trace("locale:applied", {
         ruleId: rule.id,
         locale: rule.locale,
         resultLocales: (session as any).locales
@@ -171,7 +171,7 @@ export function apply(ctx: Context, config: Config = {}) {
 
   // 语言过滤器：在 attach 阶段注入 locale（消息级触发，对文本消息有效）
   // 注意：此 handler 对 Discord/Telegram 斜杠命令不触发（interaction/command 不走 middleware 管道）
-  ctx.on('attach', async (session) => {
+  ctx.on("attach", async (session) => {
     await ready;
     const vars: Record<string, unknown> = buildVars(session);
     applyLocale(session, vars);
@@ -179,11 +179,11 @@ export function apply(ctx: Context, config: Config = {}) {
 
   // 交互命令处理器：在 Discord/Telegram 斜杠命令到达 command/execute 之前注入 locale
   // 这是 attach 事件的补充——对 interaction/command 类型的事件，attach 不会触发
-  ctx.on('interaction/command', async (session) => {
+  ctx.on("interaction/command", async (session) => {
     await ready;
     const vars: Record<string, unknown> = buildVars(session);
     applyLocale(session, vars);
-    trace('interaction:incoming', {
+    trace("interaction:incoming", {
       commandName: vars.commandName,
       platform: vars.platform,
       type: vars.type,
@@ -192,13 +192,13 @@ export function apply(ctx: Context, config: Config = {}) {
     });
   });
 
-  ctx.on('command-added', (command) => {
+  ctx.on("command-added", (command) => {
     pluginResolver.bindCommand(command);
     // 对新命令应用 visibility 标记（hidden Computed + slash 标志）
     // hidden Computed 延迟评估，所以即使 state.rules 尚未加载也可以安全设置
     visibility.apply([command], state, pluginResolver.resolveByCommand);
-    trace('command:added', {
-      command: String((command as any)?.name ?? '')
+    trace("command:added", {
+      command: String((command as any)?.name ?? "")
     });
   });
 
@@ -206,7 +206,7 @@ export function apply(ctx: Context, config: Config = {}) {
     await ready;
     const vars: Record<string, unknown> = buildVars(session);
 
-    trace('message:incoming', {
+    trace("message:incoming", {
       platform: vars.platform,
       userId: vars.userId,
       channelId: vars.channelId,
@@ -217,44 +217,44 @@ export function apply(ctx: Context, config: Config = {}) {
     });
 
     const { result, rule } = evaluateAllRules(
-      state.rules.filter((r) => r.target.type === 'global'),
+      state.rules.filter((r) => r.target.type === "global"),
       vars,
       vars
     );
 
-    if (result === 'allow') {
-      trace('message:pass', { reason: 'rule-allowed-or-no-match' });
+    if (result === "allow") {
+      trace("message:pass", { reason: "rule-allowed-or-no-match" });
       return next();
     }
 
     // Block
-    trace('message:action', {
+    trace("message:action", {
       ruleId: rule?.id,
-      action: 'block',
-      response: rule?.response || ''
+      action: "block",
+      response: rule?.response || ""
     });
 
     if (rule?.response) {
       return rule.response;
     }
-    return '';
+    return "";
   }, true);
 
   // 指令级拦截：同时处理 command 和 global 类型规则（覆盖 Discord/Telegram 斜杠命令场景）
   // whitelist 模式需要 pluginKey（从 command 解析插件），传入 targetVars
-  ctx.before('command/execute', async (argv) => {
+  ctx.before("command/execute", async (argv) => {
     await ready;
     const plugin = pluginResolver.resolveByCommand(argv.command ?? undefined);
-    const commandName = String(argv.command?.name ?? '');
+    const commandName = String(argv.command?.name ?? "");
     const vars: Record<string, unknown> = buildVars(argv.session, {
       commandName,
       pluginKey: plugin?.key,
       pluginName: plugin?.name
     });
 
-    const isInteraction = String(vars.type) === 'interaction/command';
+    const isInteraction = String(vars.type) === "interaction/command";
 
-    trace('command:incoming', {
+    trace("command:incoming", {
       command: vars.commandName,
       pluginKey: vars.pluginKey,
       pluginName: vars.pluginName,
@@ -270,16 +270,16 @@ export function apply(ctx: Context, config: Config = {}) {
 
     const { result, rule } = evaluateAllRules(state.rules, vars, vars);
 
-    if (result === 'allow') {
-      trace('command:pass', { reason: 'rule-allowed-or-no-match' });
+    if (result === "allow") {
+      trace("command:pass", { reason: "rule-allowed-or-no-match" });
       return;
     }
 
-    trace('command:action', {
+    trace("command:action", {
       ruleId: rule?.id,
       targetType: rule?.target?.type,
-      action: 'block',
-      response: rule?.response || ''
+      action: "block",
+      response: rule?.response || ""
     });
 
     if (rule?.response) {
@@ -294,7 +294,7 @@ export function apply(ctx: Context, config: Config = {}) {
         const payload = session.event && session.event._data;
         const appId = payload && payload.d && payload.d.application_id;
         const interactionToken = payload && payload.d && payload.d.token;
-        const denyMessage = session.text('internal.low-authority');
+        const denyMessage = session.text("internal.low-authority");
         if (appId && interactionToken) {
           try {
             await (session.bot as any).http.delete(
@@ -314,13 +314,13 @@ export function apply(ctx: Context, config: Config = {}) {
         }
       }
     }
-    return '';
+    return "";
   });
 
-  ctx.inject(['console'], (ctx) => {
+  ctx.inject(["console"], (ctx) => {
     ctx.console.addEntry({
-      dev: resolve(__dirname, '../client/index.ts'),
-      prod: resolve(__dirname, '../dist')
+      dev: resolve(__dirname, "../client/index.ts"),
+      prod: resolve(__dirname, "../dist")
     });
 
     const provider = new FilterProProvider(ctx, state);
@@ -334,7 +334,7 @@ export function apply(ctx: Context, config: Config = {}) {
     };
 
     addListener(
-      'filter-pro/list',
+      "filter-pro/list",
       async () => {
         await ready;
         return provider.get();
@@ -343,7 +343,7 @@ export function apply(ctx: Context, config: Config = {}) {
     );
 
     addListener(
-      'filter-pro/targets',
+      "filter-pro/targets",
       async () => {
         await refreshPluginTargets();
         return pluginResolver.list();
@@ -353,19 +353,19 @@ export function apply(ctx: Context, config: Config = {}) {
 
     // 获取指令列表
     addListener(
-      'filter-pro/commands',
+      "filter-pro/commands",
       async () => {
         const commands = (ctx as any)?.$commander?._commandList || [];
         return commands.map((cmd: any) => ({
-          name: String(cmd.name ?? ''),
-          label: String(cmd.name ?? '')
+          name: String(cmd.name ?? ""),
+          label: String(cmd.name ?? "")
         }));
       },
       { authority }
     );
 
     addListener(
-      'filter-pro/create',
+      "filter-pro/create",
       async (input: RuleInput) => {
         await ready;
         const rule = normalizeRule(input || {});
@@ -377,7 +377,7 @@ export function apply(ctx: Context, config: Config = {}) {
     );
 
     addListener(
-      'filter-pro/update',
+      "filter-pro/update",
       async (input: RuleInput) => {
         await ready;
         if (!input?.id) return null;
@@ -392,7 +392,7 @@ export function apply(ctx: Context, config: Config = {}) {
     );
 
     addListener(
-      'filter-pro/delete',
+      "filter-pro/delete",
       async (id: string) => {
         await ready;
         const index = state.rules.findIndex((item) => item.id === id);
@@ -405,7 +405,7 @@ export function apply(ctx: Context, config: Config = {}) {
     );
 
     addListener(
-      'filter-pro/reorder',
+      "filter-pro/reorder",
       async (ids: string[]) => {
         await ready;
         if (!Array.isArray(ids)) return provider.get();
@@ -423,7 +423,7 @@ export function apply(ctx: Context, config: Config = {}) {
     );
 
     addListener(
-      'filter-pro/toggle',
+      "filter-pro/toggle",
       async (payload: { id: string; enabled: boolean }) => {
         await ready;
         if (!payload?.id) return null;

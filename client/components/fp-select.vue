@@ -36,7 +36,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 interface OptionItem {
   label: string;
@@ -50,14 +50,14 @@ const props = defineProps<{
   disabled?: boolean;
 }>();
 
-const emit = defineEmits<(e: 'update:modelValue', value: string) => void>();
+const emit = defineEmits<(e: "update:modelValue", value: string) => void>();
 
 const root = ref<HTMLElement | null>(null);
 const open = ref(false);
 const menuStyle = ref({ left: 0, top: 0, width: 0 });
 
 const currentLabel = computed(
-  () => props.options.find((item) => item.value === props.modelValue)?.label || ''
+  () => props.options.find((item) => item.value === props.modelValue)?.label || ""
 );
 
 function toggle() {
@@ -67,7 +67,7 @@ function toggle() {
 }
 
 function pick(value: string) {
-  emit('update:modelValue', value);
+  emit("update:modelValue", value);
   open.value = false;
 }
 
@@ -103,15 +103,15 @@ watch(open, (value) => {
 });
 
 onMounted(() => {
-  document.addEventListener('click', onDocClick);
-  window.addEventListener('resize', onWindowChange);
-  window.addEventListener('scroll', onWindowChange, true);
+  document.addEventListener("click", onDocClick);
+  window.addEventListener("resize", onWindowChange);
+  window.addEventListener("scroll", onWindowChange, true);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocClick);
-  window.removeEventListener('resize', onWindowChange);
-  window.removeEventListener('scroll', onWindowChange, true);
+  document.removeEventListener("click", onDocClick);
+  window.removeEventListener("resize", onWindowChange);
+  window.removeEventListener("scroll", onWindowChange, true);
 });
 </script>
 

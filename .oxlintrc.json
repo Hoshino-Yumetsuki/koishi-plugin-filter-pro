@@ -16,6 +16,7 @@
     "test/fixtures"
   ],
   "options": {
-    "typeAware": true
+    "typeAware": true,
+    "typeCheck": true
   }
 }

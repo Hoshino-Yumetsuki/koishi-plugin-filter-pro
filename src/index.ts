@@ -1,14 +1,14 @@
-import type { Awaitable } from 'koishi';
+import type { Awaitable } from "koishi";
 
-import { Config as ConfigSchema } from './schema';
-import type { FilterProProvider } from './provider';
-import type { Config as FilterProConfig } from './types';
+import { Config as ConfigSchema } from "./schema";
+import type { FilterProProvider } from "./provider";
+import type { Config as FilterProConfig } from "./types";
 
-export const name = 'filter-pro';
+export const name = "filter-pro";
 export const reusable = true;
 export const filter = false;
 
-export { apply } from './apply';
+export { apply } from "./apply";
 
 export interface Config extends FilterProConfig {}
 export const Config = ConfigSchema;
@@ -25,30 +25,30 @@ export type {
   CompareExpr,
   RuleExpr,
   RuleItem
-} from './types';
+} from "./types";
 
-declare module '@koishijs/plugin-console' {
+declare module "@koishijs/plugin-console" {
   namespace Console {
     interface Services {
-      'filter-pro': FilterProProvider;
+      "filter-pro": FilterProProvider;
     }
 
     interface Events {
-      'filter-pro/list': () => Awaitable<import('./types').RuleItem[]>;
-      'filter-pro/targets': () => Awaitable<import('./types').PluginTargetOption[]>;
-      'filter-pro/commands': () => Awaitable<import('./types').CommandOption[]>;
-      'filter-pro/create': (
-        input: import('./types').RuleInput
-      ) => Awaitable<import('./types').RuleItem>;
-      'filter-pro/update': (
-        input: import('./types').RuleInput
-      ) => Awaitable<import('./types').RuleItem | null>;
-      'filter-pro/delete': (id: string) => Awaitable<boolean>;
-      'filter-pro/reorder': (ids: string[]) => Awaitable<import('./types').RuleItem[]>;
-      'filter-pro/toggle': (payload: {
+      "filter-pro/list": () => Awaitable<import("./types").RuleItem[]>;
+      "filter-pro/targets": () => Awaitable<import("./types").PluginTargetOption[]>;
+      "filter-pro/commands": () => Awaitable<import("./types").CommandOption[]>;
+      "filter-pro/create": (
+        input: import("./types").RuleInput
+      ) => Awaitable<import("./types").RuleItem>;
+      "filter-pro/update": (
+        input: import("./types").RuleInput
+      ) => Awaitable<import("./types").RuleItem | null>;
+      "filter-pro/delete": (id: string) => Awaitable<boolean>;
+      "filter-pro/reorder": (ids: string[]) => Awaitable<import("./types").RuleItem[]>;
+      "filter-pro/toggle": (payload: {
         id: string;
         enabled: boolean;
-      }) => Awaitable<import('./types').RuleItem | null>;
+      }) => Awaitable<import("./types").RuleItem | null>;
     }
   }
 }

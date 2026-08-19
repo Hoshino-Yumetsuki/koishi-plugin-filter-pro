@@ -53,7 +53,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch } from "vue";
 
 interface PluginOption {
   key: string;
@@ -65,35 +65,35 @@ interface PluginOption {
 const props = defineProps<{
   modelValue: string[];
   options: PluginOption[];
-  mode?: 'plugin' | 'command'; // 区分插件或指令模式
+  mode?: "plugin" | "command"; // 区分插件或指令模式
 }>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string[]];
+  "update:modelValue": [value: string[]];
 }>();
 
 const showDialog = ref(false);
-const searchText = ref('');
+const searchText = ref("");
 const localSelected = ref<string[]>([...props.modelValue]);
 
 // 是否为指令模式
-const isCommandMode = computed(() => props.mode === 'command');
+const isCommandMode = computed(() => props.mode === "command");
 
 // 对话框标题
-const dialogTitle = computed(() => (isCommandMode.value ? '选择指令' : '选择插件实例'));
+const dialogTitle = computed(() => (isCommandMode.value ? "选择指令" : "选择插件实例"));
 
 // 搜索框占位符
-const searchPlaceholder = computed(() => (isCommandMode.value ? '搜索指令...' : '搜索插件...'));
+const searchPlaceholder = computed(() => (isCommandMode.value ? "搜索指令..." : "搜索插件..."));
 
 // 空状态文本
 const emptyText = computed(() =>
-  isCommandMode.value ? '没有找到匹配的指令' : '没有找到匹配的插件'
+  isCommandMode.value ? "没有找到匹配的指令" : "没有找到匹配的插件"
 );
 
 // 显示文本
 const displayText = computed(() => {
-  const itemType = isCommandMode.value ? '指令' : '插件';
-  const selectPrompt = isCommandMode.value ? '请选择指令' : '请选择插件实例';
+  const itemType = isCommandMode.value ? "指令" : "插件";
+  const selectPrompt = isCommandMode.value ? "请选择指令" : "请选择插件实例";
 
   if (localSelected.value.length === 0) return selectPrompt;
   if (localSelected.value.length === 1) {
@@ -148,7 +148,7 @@ function toggleSelectAll(e: Event) {
 
 // 确定
 function confirm() {
-  emit('update:modelValue', [...localSelected.value]);
+  emit("update:modelValue", [...localSelected.value]);
   showDialog.value = false;
 }
 
@@ -169,7 +169,7 @@ watch(
 // 打开对话框时重置搜索
 watch(showDialog, (val) => {
   if (val) {
-    searchText.value = '';
+    searchText.value = "";
   }
 });
 </script>
@@ -330,7 +330,7 @@ watch(showDialog, (val) => {
   background: color-mix(in srgb, var(--k-card-border, #888) 15%, transparent);
 }
 
-.checkbox-item input[type='checkbox'] {
+.checkbox-item input[type="checkbox"] {
   width: 16px;
   height: 16px;
   cursor: pointer;

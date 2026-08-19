@@ -1,20 +1,20 @@
-export type RuleAction = 'bypass' | 'block';
-export type RuleMode = 'blacklist' | 'whitelist';
-export type GroupOperator = 'and' | 'or';
+export type RuleAction = "bypass" | "block";
+export type RuleMode = "blacklist" | "whitelist";
+export type GroupOperator = "and" | "or";
 export type CompareOperator =
-  | 'eq'
-  | 'ne'
-  | 'in'
-  | 'nin'
-  | 'includes'
-  | 'notincludes'
-  | 'regex'
-  | 'gt'
-  | 'gte'
-  | 'lt'
-  | 'lte'
-  | 'exists';
-export type TargetType = 'global' | 'plugin' | 'command';
+  | "eq"
+  | "ne"
+  | "in"
+  | "nin"
+  | "includes"
+  | "notincludes"
+  | "regex"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "exists";
+export type TargetType = "global" | "plugin" | "command";
 
 export interface RuleTarget {
   type: TargetType;
@@ -22,18 +22,18 @@ export interface RuleTarget {
 }
 
 export interface GroupExpr {
-  type: 'group';
+  type: "group";
   operator: GroupOperator;
   children: RuleExpr[];
 }
 
 export interface NotExpr {
-  type: 'not';
+  type: "not";
   child: RuleExpr;
 }
 
 export interface CompareExpr {
-  type: 'compare';
+  type: "compare";
   field: string;
   operator: CompareOperator;
   value?: unknown;

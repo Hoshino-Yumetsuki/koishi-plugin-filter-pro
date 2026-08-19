@@ -1,20 +1,20 @@
-import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [vue()],
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     emptyOutDir: true,
     lib: {
-      entry: './client/index.ts',
-      formats: ['es'],
-      fileName: () => 'index.js'
+      entry: "./client/index.ts",
+      formats: ["es"],
+      fileName: () => "index.js"
     },
     rollupOptions: {
       external: [/^@koishijs\//, /^vue$/, /^@vueuse\//, /^schemastery/],
       output: {
-        assetFileNames: 'style.[ext]'
+        assetFileNames: "style.[ext]"
       }
     },
     minify: true
